@@ -3,6 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { RideCard } from './RideCard';
 import { RideInspector } from './RideInspector';
 import { ShoppingBag, Users, BarChart2, Layers } from 'lucide-react';
+import { playGameSfx } from '../audio/soundManager';
 
 const ShopPanel = lazy(() => import('./ShopPanel').then((m) => ({ default: m.ShopPanel })));
 const VisitorPanel = lazy(() => import('./VisitorPanel').then((m) => ({ default: m.VisitorPanel })));
@@ -35,6 +36,7 @@ export const ParkView = () => {
   const hasSelection = selectedRideId !== null;
 
   const handleTabClick = (tabId: SideTab) => {
+    playGameSfx('ui_click');
     if (hasSelection) selectRide(null);
     setActiveTab(tabId);
   };

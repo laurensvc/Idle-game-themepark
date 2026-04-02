@@ -1,6 +1,7 @@
 import { X, AlertTriangle, Wrench, TrendingUp, Users } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import type { NotificationType } from '../types/game';
+import { playGameSfx } from '../audio/soundManager';
 
 const NOTIFICATION_CONFIG: Record<
   NotificationType,
@@ -73,7 +74,10 @@ export const Notifications = () => {
             <span className={`${cfg.color} mt-0.5 shrink-0`}>{cfg.icon}</span>
             <span className="flex-1 text-sm leading-snug text-slate-300">{notification.message}</span>
             <button
-              onClick={() => dismissNotification(notification.id)}
+              onClick={() => {
+                playGameSfx('ui_click');
+                dismissNotification(notification.id);
+              }}
               className="mt-0.5 shrink-0 cursor-pointer text-slate-600 transition-colors hover:text-slate-300"
               aria-label="Dismiss notification"
             >

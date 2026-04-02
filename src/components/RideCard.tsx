@@ -4,6 +4,7 @@ import { useGameStore } from '../store/gameStore';
 import { getRideDefinition } from '../data/rides';
 import { purchasedUpgradesIncludeAutoRepairForRide } from '../data/upgrades';
 import type { Ride } from '../types/game';
+import { playGameSfx } from '../audio/soundManager';
 
 interface RideCardProps {
   ride: Ride;
@@ -88,9 +89,14 @@ export const RideCard = ({ ride }: RideCardProps) => {
     collectRideCash(ride.instanceId);
   };
 
+  const handleSelect = () => {
+    playGameSfx('ui_click');
+    selectRide(isSelected ? null : ride.instanceId);
+  };
+
   return (
     <div
-      onClick={() => selectRide(isSelected ? null : ride.instanceId)}
+      onClick={handleSelect}
       className={`pixel-panel relative cursor-pointer p-4 transition-all duration-200 select-none ${statusCfg.borderClass} ${statusCfg.bgClass} ${isSelected ? 'ring-neon-purple ring-offset-park-bg ring-2 ring-offset-1' : 'hover:brightness-125'} bg-park-card ${ride.status === 'broken' ? 'animate-shake' : ''}`}
       style={{ backgroundColor: `color-mix(in srgb, ${def.gridColor} 6%, var(--color-park-card))` }}
       role="button"

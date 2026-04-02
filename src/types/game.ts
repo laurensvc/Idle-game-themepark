@@ -86,6 +86,9 @@ export interface GameState {
   parkHappiness: number; // 0-100
   notifications: Notification[];
   purchasedUpgrades: string[];
+  isAudioMuted: boolean;
+  masterVolume: number; // 0-1
+  sfxVolume: number; // 0-1
   stats: GameStats;
   gameTick: number;
   isPaused: boolean;

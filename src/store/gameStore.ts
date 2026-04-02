@@ -2,10 +2,18 @@ import { create } from 'zustand';
 import type { GameState, Ride, VisitorGroup, Notification, VisitorType } from '../types/game';
 import { getRideDefinition, getLevelUpCost, getLevelCapacityMultiplier, getLevelIncomeMultiplier } from '../data/rides';
 import { getUpgradeDefinition } from '../data/upgrades';
+import { playGameSfx } from '../audio/soundManager';
 
 const TICK_INTERVAL_MS = 1000;
 const NOTIFICATION_TTL_MS = 5000;
 const VISITOR_TYPES: VisitorType[] = ['family', 'thrill_seeker', 'child', 'elderly', 'teen'];
+const AUDIO_SETTINGS_STORAGE_KEY = 'idlepark_audio_settings_v1';
+
+interface StoredAudioSettings {
+  isMuted: boolean;
+  masterVolume: number;
+  sfxVolume: number;
+}
 
 function generateId(): string {
   return Math.random().toString(36).slice(2, 9);
@@ -42,6 +50,42 @@ const formatMoney = (amount: number): string => {
   return `$${amount}`;
 };
 
+const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+
+const getStoredAudioSettings = (): StoredAudioSettings => {
+  const defaults: StoredAudioSettings = {
+    // Start muted until the user adds files and enables sound.
+    isMuted: true,
+    masterVolume: 0.8,
+    sfxVolume: 0.8,
+  };
+
+  if (typeof window === 'undefined') return defaults;
+
+  try {
+    const raw = window.localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY);
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw) as Partial<StoredAudioSettings>;
+
+    return {
+      isMuted: typeof parsed.isMuted === 'boolean' ? parsed.isMuted : defaults.isMuted,
+      masterVolume: clamp01(typeof parsed.masterVolume === 'number' ? parsed.masterVolume : defaults.masterVolume),
+      sfxVolume: clamp01(typeof parsed.sfxVolume === 'number' ? parsed.sfxVolume : defaults.sfxVolume),
+    };
+  } catch {
+    return defaults;
+  }
+};
+
+const persistAudioSettings = (settings: StoredAudioSettings): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // Ignore persistence failures; runtime state still works.
+  }
+};
+
 interface GameActions {
   tick: () => void;
   buyRide: (definitionId: string) => void;
@@ -54,8 +98,13 @@ interface GameActions {
   collectAllCash: () => void;
   selectRide: (instanceId: string | null) => void;
   togglePause: () => void;
+  toggleAudioMute: () => void;
+  setMasterVolume: (volume: number) => void;
+  setSfxVolume: (volume: number) => void;
   dismissNotification: (id: string) => void;
 }
+
+const initialAudioSettings = getStoredAudioSettings();
 
 const initialState: GameState = {
   money: 500,
@@ -65,6 +114,9 @@ const initialState: GameState = {
   parkHappiness: 80,
   notifications: [],
   purchasedUpgrades: [],
+  isAudioMuted: initialAudioSettings.isMuted,
+  masterVolume: initialAudioSettings.masterVolume,
+  sfxVolume: initialAudioSettings.sfxVolume,
   stats: {
     totalEarnings: 0,
     totalVisitors: 0,
@@ -87,6 +139,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     const now = Date.now();
     const newNotifications: Notification[] = [];
+
+    let hasBreakdownAlert = false;
+    let hasRepairComplete = false;
 
     const updatedRides = state.rides.map((ride) => {
       const def = getRideDefinition(ride.definitionId);
@@ -141,6 +196,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           updated.status = 'broken';
           updated.currentVisitors = 0;
           updated.ticksSinceLastBreakdown = 0;
+          hasBreakdownAlert = true;
           newNotifications.push(createNotification('breakdown', `${def.name} has broken down!`, ride.instanceId));
 
           const hasAutoRepair = state.purchasedUpgrades.some(
@@ -164,6 +220,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         if (updated.repairProgress >= 100) {
           updated.status = 'operating';
           updated.repairProgress = 0;
+          hasRepairComplete = true;
           newNotifications.push(createNotification('repair', `${def.name} is back online!`, ride.instanceId));
         }
       }
@@ -246,6 +303,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       stats: newStats,
       gameTick: state.gameTick + 1,
     });
+
+    if (hasBreakdownAlert) playGameSfx('breakdown');
+    if (hasRepairComplete) playGameSfx('repair_done');
   },
 
   buyRide: (definitionId: string) => {
@@ -264,6 +324,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         ...state.notifications,
       ].slice(0, 5),
     });
+    playGameSfx('purchase');
   },
 
   repairRide: (instanceId: string) => {
@@ -281,6 +342,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         ...state.notifications,
       ].slice(0, 5),
     });
+    playGameSfx('repair_start');
   },
 
   cleanPark: () => {
@@ -288,12 +350,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       parkDirt: 0,
       rides: state.rides.map((r) => ({ ...r, dirtLevel: 0 })),
     }));
+    playGameSfx('ui_click');
   },
 
   cleanRide: (instanceId: string) => {
     set((state) => ({
       rides: state.rides.map((r) => (r.instanceId === instanceId ? { ...r, dirtLevel: 0 } : r)),
     }));
+    playGameSfx('ui_click');
   },
 
   levelUpRide: (instanceId: string) => {
@@ -315,6 +379,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         ...state.notifications,
       ].slice(0, 5),
     });
+    playGameSfx('upgrade');
   },
 
   collectRideCash: (instanceId: string) => {
@@ -326,6 +391,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       money: state.money + ride.pendingCash,
       rides: state.rides.map((r) => (r.instanceId === instanceId ? { ...r, pendingCash: 0 } : r)),
     });
+    playGameSfx('cash_collect');
   },
 
   collectAllCash: () => {
@@ -341,6 +407,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         ...state.notifications,
       ].slice(0, 5),
     });
+    playGameSfx('cash_collect');
   },
 
   buyUpgrade: (upgradeId: string) => {
@@ -374,6 +441,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     }
 
     set(updates);
+    playGameSfx('upgrade');
   },
 
   selectRide: (instanceId: string | null) => {
@@ -382,6 +450,42 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   togglePause: () => {
     set((state) => ({ isPaused: !state.isPaused }));
+    playGameSfx('ui_toggle');
+  },
+
+  toggleAudioMute: () => {
+    const state = get();
+    const nextMuted = !state.isAudioMuted;
+    const nextSettings = {
+      isMuted: nextMuted,
+      masterVolume: state.masterVolume,
+      sfxVolume: state.sfxVolume,
+    };
+    persistAudioSettings(nextSettings);
+    set({ isAudioMuted: nextMuted });
+    if (!nextMuted) playGameSfx('ui_toggle');
+  },
+
+  setMasterVolume: (volume: number) => {
+    const state = get();
+    const nextSettings = {
+      isMuted: state.isAudioMuted,
+      masterVolume: clamp01(volume),
+      sfxVolume: state.sfxVolume,
+    };
+    persistAudioSettings(nextSettings);
+    set({ masterVolume: nextSettings.masterVolume });
+  },
+
+  setSfxVolume: (volume: number) => {
+    const state = get();
+    const nextSettings = {
+      isMuted: state.isAudioMuted,
+      masterVolume: state.masterVolume,
+      sfxVolume: clamp01(volume),
+    };
+    persistAudioSettings(nextSettings);
+    set({ sfxVolume: nextSettings.sfxVolume });
   },
 
   dismissNotification: (id: string) => {
@@ -392,8 +496,12 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 }));
 
 export const resetGameStore = (): void => {
+  const current = useGameStore.getState();
   useGameStore.setState({
     ...initialState,
+    isAudioMuted: current.isAudioMuted,
+    masterVolume: current.masterVolume,
+    sfxVolume: current.sfxVolume,
     rides: [createInitialRide('ferris_wheel')],
   });
 };

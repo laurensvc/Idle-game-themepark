@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { Pause, Play, DollarSign, Users, Heart, Clock, TrendingUp, Coins } from 'lucide-react';
+import { Pause, Play, DollarSign, Users, Heart, Clock, TrendingUp, Coins, Volume2, VolumeX } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../store/gameStore';
 
@@ -49,21 +49,39 @@ const statIcons = {
 } as const;
 
 export const HUD = () => {
-  const { money, visitors, parkHappiness, parkDirt, stats, isPaused, togglePause, gameTick, rides, collectAllCash } =
-    useGameStore(
-      useShallow((s) => ({
-        money: s.money,
-        visitors: s.visitors,
-        parkHappiness: s.parkHappiness,
-        parkDirt: s.parkDirt,
-        stats: s.stats,
-        isPaused: s.isPaused,
-        togglePause: s.togglePause,
-        gameTick: s.gameTick,
-        rides: s.rides,
-        collectAllCash: s.collectAllCash,
-      }))
-    );
+  const {
+    money,
+    visitors,
+    parkHappiness,
+    parkDirt,
+    stats,
+    isPaused,
+    togglePause,
+    gameTick,
+    rides,
+    collectAllCash,
+    isAudioMuted,
+    sfxVolume,
+    toggleAudioMute,
+    setSfxVolume,
+  } = useGameStore(
+    useShallow((s) => ({
+      money: s.money,
+      visitors: s.visitors,
+      parkHappiness: s.parkHappiness,
+      parkDirt: s.parkDirt,
+      stats: s.stats,
+      isPaused: s.isPaused,
+      togglePause: s.togglePause,
+      gameTick: s.gameTick,
+      rides: s.rides,
+      collectAllCash: s.collectAllCash,
+      isAudioMuted: s.isAudioMuted,
+      sfxVolume: s.sfxVolume,
+      toggleAudioMute: s.toggleAudioMute,
+      setSfxVolume: s.setSfxVolume,
+    }))
+  );
 
   const totalVisitors = visitors.reduce((sum, v) => sum + v.size, 0);
   const totalPendingCash = rides.reduce((sum, r) => sum + r.pendingCash, 0);
@@ -161,6 +179,30 @@ export const HUD = () => {
           {isPaused ? <Play size={14} /> : <Pause size={14} />}
           <span>{isPaused ? 'PAUSED' : 'PAUSE'}</span>
         </button>
+
+        {/* Audio controls */}
+        <div className="pixel-panel flex items-center gap-2 border-[#2a2a50] bg-[#151532] px-2 py-1.5">
+          <button
+            onClick={toggleAudioMute}
+            className={`cursor-pointer transition-colors ${
+              isAudioMuted ? 'text-slate-500 hover:text-slate-300' : 'text-[#06b6d4] hover:text-[#67e8f9]'
+            }`}
+            aria-label={isAudioMuted ? 'Unmute audio' : 'Mute audio'}
+            title={isAudioMuted ? 'Audio muted' : 'Audio enabled'}
+          >
+            {isAudioMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round(sfxVolume * 100)}
+            onChange={(event) => setSfxVolume(Number(event.target.value) / 100)}
+            className="accent-[#06b6d4] h-1.5 w-20 cursor-pointer"
+            aria-label="SFX volume"
+          />
+        </div>
       </div>
     </header>
   );
