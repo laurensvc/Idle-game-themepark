@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import type { GameState, Ride, VisitorGroup, Notification, VisitorType } from '../types/game';
-import { getRideDefinition } from '../data/rides';
+import { getRideDefinition, getLevelUpCost, getLevelCapacityMultiplier, getLevelIncomeMultiplier } from '../data/rides';
 import { getUpgradeDefinition } from '../data/upgrades';
 
 const TICK_INTERVAL_MS = 1000;
+const NOTIFICATION_TTL_MS = 5000;
 const VISITOR_TYPES: VisitorType[] = ['family', 'thrill_seeker', 'child', 'elderly', 'teen'];
 
 function generateId(): string {
@@ -22,6 +23,7 @@ function createInitialRide(definitionId: string): Ride {
     isAutoRepair: false,
     level: 1,
     ticksSinceLastBreakdown: 0,
+    pendingCash: 0,
   };
 }
 
@@ -35,12 +37,21 @@ function createNotification(type: Notification['type'], message: string, rideIns
   };
 }
 
+const formatMoney = (amount: number): string => {
+  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;
+  return `$${amount}`;
+};
+
 interface GameActions {
   tick: () => void;
   buyRide: (definitionId: string) => void;
   repairRide: (instanceId: string) => void;
   cleanPark: () => void;
+  cleanRide: (instanceId: string) => void;
   buyUpgrade: (upgradeId: string) => void;
+  levelUpRide: (instanceId: string) => void;
+  collectRideCash: (instanceId: string) => void;
+  collectAllCash: () => void;
   selectRide: (instanceId: string | null) => void;
   togglePause: () => void;
   dismissNotification: (id: string) => void;
@@ -74,8 +85,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const state = get();
     if (state.isPaused) return;
 
+    const now = Date.now();
     const newNotifications: Notification[] = [];
-    let totalEarned = 0;
 
     const updatedRides = state.rides.map((ride) => {
       const def = getRideDefinition(ride.definitionId);
@@ -83,74 +94,59 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       const updated = { ...ride };
 
-      // Calculate breakdown chance (modified by upgrades)
       const breakdownReductionUpgrades = state.purchasedUpgrades
         .map((id) => getUpgradeDefinition(id))
         .filter((u) => u?.rideId === ride.definitionId && u?.effect === 'breakdown_reduction');
       const totalReduction = breakdownReductionUpgrades.reduce((sum, u) => sum + (u?.value ?? 0), 0);
-      const effectiveBreakdownChance = (def.breakdownChance * (1 - totalReduction)) / 60; // per tick (per second)
+      const effectiveBreakdownChance = (def.breakdownChance * (1 - totalReduction)) / 60;
 
       if (updated.status === 'operating') {
         updated.ticksSinceLastBreakdown++;
 
-        // Generate income
-        const hasIncomeBoost = state.purchasedUpgrades.some(
-          (id) =>
-            getUpgradeDefinition(id)?.rideId === ride.definitionId &&
-            getUpgradeDefinition(id)?.effect === 'income_boost'
-        );
         const incomeBoost = state.purchasedUpgrades
           .map((id) => getUpgradeDefinition(id))
           .filter((u) => u?.rideId === ride.definitionId && u?.effect === 'income_boost')
           .reduce((sum, u) => sum + (u?.value ?? 0), 0);
 
-        const hasCapacityBoost = state.purchasedUpgrades.some(
-          (id) =>
-            getUpgradeDefinition(id)?.rideId === ride.definitionId &&
-            getUpgradeDefinition(id)?.effect === 'capacity_boost'
-        );
-        const capacityBoost = hasCapacityBoost
-          ? state.purchasedUpgrades
-              .map((id) => getUpgradeDefinition(id))
-              .filter((u) => u?.rideId === ride.definitionId && u?.effect === 'capacity_boost')
-              .reduce((sum, u) => sum + (u?.value ?? 0), 0)
-          : 0;
+        const capacityBoost = state.purchasedUpgrades
+          .map((id) => getUpgradeDefinition(id))
+          .filter((u) => u?.rideId === ride.definitionId && u?.effect === 'capacity_boost')
+          .reduce((sum, u) => sum + (u?.value ?? 0), 0);
 
-        const effectiveCapacity = Math.floor(def.baseCapacity * (1 + capacityBoost));
+        const levelCapacity = getLevelCapacityMultiplier(ride.level);
+        const levelIncome = getLevelIncomeMultiplier(ride.level);
+
+        const effectiveCapacity = Math.floor(def.baseCapacity * (1 + capacityBoost) * levelCapacity);
         const visitorAttraction = state.purchasedUpgrades
           .map((id) => getUpgradeDefinition(id))
           .filter((u) => !u?.rideId && u?.effect === 'visitor_attraction')
           .reduce((sum, u) => sum + (u?.value ?? 0), 0);
 
-        // Simulate visitors cycling through
         const happinessFactor = state.parkHappiness / 100;
         const dirtFactor = Math.max(0.3, 1 - updated.dirtLevel / 100);
         const baseVisitors = Math.floor(
-          effectiveCapacity * happinessFactor * dirtFactor * (1 + visitorAttraction) * (Math.random() * 0.4 + 0.8)
+          effectiveCapacity * happinessFactor * dirtFactor * (1 + visitorAttraction) * (Math.random() * 0.4 + 0.8),
         );
         updated.currentVisitors = Math.min(effectiveCapacity, baseVisitors);
         updated.totalVisitorsServed += updated.currentVisitors;
 
         const earned = Math.floor(
-          updated.currentVisitors * def.baseCostPerTick * (hasIncomeBoost ? 1 + incomeBoost : 1) * dirtFactor
+          updated.currentVisitors * def.baseCostPerTick * (1 + incomeBoost) * levelIncome * dirtFactor,
         );
-        totalEarned += earned;
+        updated.pendingCash = (updated.pendingCash ?? 0) + earned;
 
-        // Accumulate dirt
         updated.dirtLevel = Math.min(100, updated.dirtLevel + 0.5 + (ride.definitionId === 'water_ride' ? 1 : 0));
 
-        // Random breakdown
         if (Math.random() < effectiveBreakdownChance && updated.ticksSinceLastBreakdown > 30) {
           updated.status = 'broken';
           updated.currentVisitors = 0;
           updated.ticksSinceLastBreakdown = 0;
           newNotifications.push(createNotification('breakdown', `${def.name} has broken down!`, ride.instanceId));
 
-          // Auto repair if purchased
           const hasAutoRepair = state.purchasedUpgrades.some(
             (id) =>
               getUpgradeDefinition(id)?.rideId === ride.definitionId &&
-              getUpgradeDefinition(id)?.effect === 'auto_repair'
+              getUpgradeDefinition(id)?.effect === 'auto_repair',
           );
           if (hasAutoRepair) {
             updated.isAutoRepair = true;
@@ -161,7 +157,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       } else if (updated.status === 'broken') {
         updated.currentVisitors = 0;
       } else if (updated.status === 'repairing') {
-        const repairSpeed = 100 / def.repairTime; // percent per second
+        const repairSpeed = 100 / def.repairTime;
         updated.repairProgress = Math.min(100, updated.repairProgress + repairSpeed);
         updated.currentVisitors = 0;
 
@@ -175,33 +171,28 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       return updated;
     });
 
-    // Park dirt accumulates globally
     const dirtIncrease = 0.2 + updatedRides.filter((r) => r.status === 'operating').length * 0.1;
     let newParkDirt = Math.min(100, state.parkDirt + dirtIncrease);
 
-    // Auto clean if purchased
     if (state.isAutoCleanEnabled) {
       newParkDirt = Math.max(0, newParkDirt - 2);
-      // Also clean rides slowly
       updatedRides.forEach((r) => {
         r.dirtLevel = Math.max(0, r.dirtLevel - 1);
       });
     }
 
-    // Happiness calculation based on dirt, broken rides
     const operatingRides = updatedRides.filter((r) => r.status === 'operating').length;
     const brokenRides = updatedRides.filter((r) => r.status === 'broken').length;
     const avgRideDirt = updatedRides.reduce((sum, r) => sum + r.dirtLevel, 0) / Math.max(1, updatedRides.length);
     const happinessTarget = Math.max(
       10,
-      100 - newParkDirt * 0.3 - avgRideDirt * 0.2 - brokenRides * 15 + operatingRides * 5
+      100 - newParkDirt * 0.3 - avgRideDirt * 0.2 - brokenRides * 15 + operatingRides * 5,
     );
     const newHappiness = Math.max(
       0,
-      Math.min(100, state.parkHappiness + (happinessTarget - state.parkHappiness) * 0.05)
+      Math.min(100, state.parkHappiness + (happinessTarget - state.parkHappiness) * 0.05),
     );
 
-    // Spawn new visitor groups occasionally
     const newVisitors: VisitorGroup[] = [...state.visitors];
     if (state.gameTick % 5 === 0 && operatingRides > 0) {
       const visitorAttraction = state.purchasedUpgrades
@@ -223,19 +214,21 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       }
     }
 
-    // Age out visitors
     const activeVisitors = newVisitors
       .map((v) => ({ ...v, timeInPark: v.timeInPark + 1, happiness: Math.max(0, v.happiness - newParkDirt / 200) }))
-      .filter((v) => v.timeInPark < 120 && v.happiness > 20); // leave after 2 min or too unhappy
+      .filter((v) => v.timeInPark < 120 && v.happiness > 20);
 
     const totalCurrentVisitors = activeVisitors.reduce((sum, v) => sum + v.size, 0);
 
-    // Trim old notifications (keep last 5)
-    const allNotifications = [...newNotifications, ...state.notifications].slice(0, 5);
+    // Auto-dismiss notifications older than TTL, then prepend new ones and cap at 5
+    const freshNotifications = state.notifications.filter((n) => now - n.timestamp < NOTIFICATION_TTL_MS);
+    const allNotifications = [...newNotifications, ...freshNotifications].slice(0, 5);
+
+    const totalPendingEarned = updatedRides.reduce((sum, r) => sum + (r.pendingCash - (state.rides.find((sr) => sr.instanceId === r.instanceId)?.pendingCash ?? 0)), 0);
 
     const newStats = {
       ...state.stats,
-      totalEarnings: state.stats.totalEarnings + totalEarned,
+      totalEarnings: state.stats.totalEarnings + totalPendingEarned,
       totalVisitors: state.stats.totalVisitors + totalCurrentVisitors * 0.01,
       peakVisitors: Math.max(state.stats.peakVisitors, totalCurrentVisitors),
       timePlayed: state.stats.timePlayed + 1,
@@ -243,7 +236,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     set({
       rides: updatedRides,
-      money: state.money + totalEarned,
       parkDirt: newParkDirt,
       parkHappiness: newHappiness,
       visitors: activeVisitors,
@@ -279,7 +271,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     set({
       rides: state.rides.map((r) =>
-        r.instanceId === instanceId ? { ...r, status: 'repairing', repairProgress: 0, isAutoRepair: false } : r
+        r.instanceId === instanceId ? { ...r, status: 'repairing' as const, repairProgress: 0, isAutoRepair: false } : r,
       ),
       notifications: [
         createNotification('repair', `Repairing ${def?.name ?? 'ride'}...`, instanceId),
@@ -293,6 +285,59 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       parkDirt: 0,
       rides: state.rides.map((r) => ({ ...r, dirtLevel: 0 })),
     }));
+  },
+
+  cleanRide: (instanceId: string) => {
+    set((state) => ({
+      rides: state.rides.map((r) => (r.instanceId === instanceId ? { ...r, dirtLevel: 0 } : r)),
+    }));
+  },
+
+  levelUpRide: (instanceId: string) => {
+    const state = get();
+    const ride = state.rides.find((r) => r.instanceId === instanceId);
+    if (!ride) return;
+    const def = getRideDefinition(ride.definitionId);
+    if (!def) return;
+    if (ride.level >= def.maxLevel) return;
+
+    const cost = getLevelUpCost(def, ride.level);
+    if (state.money < cost) return;
+
+    set({
+      money: state.money - cost,
+      rides: state.rides.map((r) => (r.instanceId === instanceId ? { ...r, level: r.level + 1 } : r)),
+      notifications: [
+        createNotification('upgrade', `${def.name} upgraded to level ${ride.level + 1}!`, instanceId),
+        ...state.notifications,
+      ].slice(0, 5),
+    });
+  },
+
+  collectRideCash: (instanceId: string) => {
+    const state = get();
+    const ride = state.rides.find((r) => r.instanceId === instanceId);
+    if (!ride || ride.pendingCash <= 0) return;
+
+    set({
+      money: state.money + ride.pendingCash,
+      rides: state.rides.map((r) => (r.instanceId === instanceId ? { ...r, pendingCash: 0 } : r)),
+    });
+  },
+
+  collectAllCash: () => {
+    const state = get();
+    const totalPending = state.rides.reduce((sum, r) => sum + r.pendingCash, 0);
+    if (totalPending <= 0) return;
+
+    set({
+      money: state.money + totalPending,
+      rides: state.rides.map((r) => ({ ...r, pendingCash: 0 })),
+      notifications: [
+        createNotification('income', `Collected ${formatMoney(totalPending)} from all rides!`),
+        ...state.notifications,
+      ].slice(0, 5),
+    });
   },
 
   buyUpgrade: (upgradeId: string) => {
@@ -316,11 +361,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       updates.isAutoCleanEnabled = true;
     }
 
-    // Apply auto repair to already-broken rides
     if (upgrade.effect === 'auto_repair' && upgrade.rideId) {
       updates.rides = state.rides.map((r) => {
         if (r.definitionId === upgrade.rideId && r.status === 'broken') {
-          return { ...r, status: 'repairing', repairProgress: 0, isAutoRepair: true };
+          return { ...r, status: 'repairing' as const, repairProgress: 0, isAutoRepair: true };
         }
         return r;
       });
@@ -351,7 +395,6 @@ export const resetGameStore = (): void => {
   });
 };
 
-// Game loop - runs outside of React to avoid re-render dependency
 let gameLoopInterval: ReturnType<typeof setInterval> | null = null;
 
 export const startGameLoop = () => {

@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { Pause, Play, DollarSign, Users, Heart, Clock, TrendingUp } from 'lucide-react';
+import { Pause, Play, DollarSign, Users, Heart, Clock, TrendingUp, Coins } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../store/gameStore';
 
@@ -21,14 +21,18 @@ interface StatPillProps {
   value: string;
   color: string;
   glowClass: string;
+  animate?: boolean;
 }
 
-const StatPill = memo(({ icon, label, value, color, glowClass }: StatPillProps) => (
-  <div className={`pixel-panel flex items-center gap-2 px-3 py-2 ${color} ${glowClass} bg-[#1a1a35]`}>
+const StatPill = memo(({ icon, label, value, color, glowClass, animate = true }: StatPillProps) => (
+  <div className={`pixel-panel flex items-center gap-2.5 px-3.5 py-2 ${color} ${glowClass} bg-[#1a1a35]`}>
     <span className="opacity-80">{icon}</span>
     <div className="flex flex-col leading-none">
-      <span className="text-[10px] font-medium tracking-widest uppercase opacity-50">{label}</span>
-      <span key={value} className="font-display animate-juicy-pop inline-block origin-left text-sm font-bold">
+      <span className="text-xs font-medium tracking-widest uppercase opacity-50">{label}</span>
+      <span
+        key={animate ? value : undefined}
+        className={`font-display inline-block origin-left text-base font-bold ${animate ? 'animate-juicy-pop' : ''}`}
+      >
         {value}
       </span>
     </div>
@@ -37,29 +41,32 @@ const StatPill = memo(({ icon, label, value, color, glowClass }: StatPillProps) 
 
 StatPill.displayName = 'StatPill';
 
-/** Hoisted so StatPill receives stable icon references (rerender-memo-with-default-value). */
 const statIcons = {
-  cash: <DollarSign size={14} className="text-[#f97316]" />,
-  guests: <Users size={14} className="text-[#06b6d4]" />,
-  earned: <TrendingUp size={14} className="text-[#a78bfa]" />,
-  time: <Clock size={14} className="text-slate-400" />,
+  cash: <DollarSign size={16} className="text-[#f97316]" />,
+  guests: <Users size={16} className="text-[#06b6d4]" />,
+  earned: <TrendingUp size={16} className="text-[#a78bfa]" />,
+  time: <Clock size={16} className="text-slate-400" />,
 } as const;
 
 export const HUD = () => {
-  const { money, visitors, parkHappiness, parkDirt, stats, isPaused, togglePause, gameTick } = useGameStore(
-    useShallow((s) => ({
-      money: s.money,
-      visitors: s.visitors,
-      parkHappiness: s.parkHappiness,
-      parkDirt: s.parkDirt,
-      stats: s.stats,
-      isPaused: s.isPaused,
-      togglePause: s.togglePause,
-      gameTick: s.gameTick,
-    }))
-  );
+  const { money, visitors, parkHappiness, parkDirt, stats, isPaused, togglePause, gameTick, rides, collectAllCash } =
+    useGameStore(
+      useShallow((s) => ({
+        money: s.money,
+        visitors: s.visitors,
+        parkHappiness: s.parkHappiness,
+        parkDirt: s.parkDirt,
+        stats: s.stats,
+        isPaused: s.isPaused,
+        togglePause: s.togglePause,
+        gameTick: s.gameTick,
+        rides: s.rides,
+        collectAllCash: s.collectAllCash,
+      })),
+    );
 
   const totalVisitors = visitors.reduce((sum, v) => sum + v.size, 0);
+  const totalPendingCash = rides.reduce((sum, r) => sum + r.pendingCash, 0);
   const happinessColor =
     parkHappiness >= 70 ? 'text-green-400' : parkHappiness >= 40 ? 'text-yellow-400' : 'text-red-400';
   const dirtColor = parkDirt <= 30 ? 'text-green-400' : parkDirt <= 60 ? 'text-yellow-400' : 'text-red-400';
@@ -72,10 +79,10 @@ export const HUD = () => {
     <header className="flex shrink-0 items-center justify-between border-b border-[#2a2a50] bg-[#0d0d24] px-4 py-2">
       {/* Logo */}
       <div className="flex items-center gap-3">
-        <div className="font-display neon-text-purple text-xl font-black tracking-tight text-[#a78bfa]">
+        <div className="font-display neon-text-purple text-2xl font-black tracking-tight text-[#a78bfa]">
           IDLE<span className="neon-text-orange text-[#f97316]">PARK</span>
         </div>
-        <div className="hidden text-[10px] font-medium tracking-widest text-[#4a4a70] uppercase sm:block">
+        <div className="hidden text-xs font-medium tracking-widest text-[#4a4a70] uppercase sm:block">
           Theme Park Tycoon
         </div>
       </div>
@@ -123,22 +130,38 @@ export const HUD = () => {
           value={formatTime(gameTick)}
           color="border-slate-600/30"
           glowClass=""
+          animate={false}
         />
       </div>
 
-      {/* Pause button */}
-      <button
-        onClick={togglePause}
-        className={`pixel-button flex cursor-pointer items-center gap-2 px-4 py-2 text-sm font-bold transition-all duration-200 ${
-          isPaused
-            ? 'neon-border-orange border-[#f97316] bg-[#f97316]/10 text-[#f97316]'
-            : 'border-[#7c3aed]/50 text-[#a78bfa] hover:border-[#7c3aed] hover:bg-[#7c3aed]/10'
-        } `}
-        aria-label={isPaused ? 'Resume game' : 'Pause game'}
-      >
-        {isPaused ? <Play size={14} /> : <Pause size={14} />}
-        <span>{isPaused ? 'PAUSED' : 'PAUSE'}</span>
-      </button>
+      {/* Action buttons */}
+      <div className="flex items-center gap-2">
+        {/* Collect All button */}
+        {totalPendingCash > 0 && (
+          <button
+            onClick={collectAllCash}
+            className="pixel-button neon-border-orange flex cursor-pointer items-center gap-2 border-[#f97316] bg-[#f97316]/10 px-3 py-2 text-sm font-bold text-[#f97316] transition-all duration-200 hover:bg-[#f97316]/20"
+            aria-label={`Collect all cash: ${formatMoney(totalPendingCash)}`}
+          >
+            <Coins size={14} />
+            <span>{formatMoney(totalPendingCash)}</span>
+          </button>
+        )}
+
+        {/* Pause button */}
+        <button
+          onClick={togglePause}
+          className={`pixel-button flex cursor-pointer items-center gap-2 px-4 py-2 text-base font-bold transition-all duration-200 ${
+            isPaused
+              ? 'neon-border-orange border-[#f97316] bg-[#f97316]/10 text-[#f97316]'
+              : 'border-[#7c3aed]/50 text-[#a78bfa] hover:border-[#7c3aed] hover:bg-[#7c3aed]/10'
+          }`}
+          aria-label={isPaused ? 'Resume game' : 'Pause game'}
+        >
+          {isPaused ? <Play size={14} /> : <Pause size={14} />}
+          <span>{isPaused ? 'PAUSED' : 'PAUSE'}</span>
+        </button>
+      </div>
     </header>
   );
 };

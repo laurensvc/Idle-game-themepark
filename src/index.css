@@ -162,6 +162,22 @@ body {
   transform: none;
 }
 
+/* Segmented progress bar: 10 discrete blocks */
+.pixel-bar {
+  position: relative;
+  border: 2px solid var(--color-park-border);
+  border-radius: 0 !important;
+  image-rendering: pixelated;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent calc(10% - 2px),
+      var(--color-park-bg) calc(10% - 2px),
+      var(--color-park-bg) 10%
+    );
+}
+
 /* Animations */
 @keyframes juicy-pop {
   0% {
@@ -244,6 +260,17 @@ body {
   }
 }
 
+@keyframes slide-in-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .animate-pulse-neon {
   animation: pulse-neon 2s ease-in-out infinite;
 }
@@ -259,13 +286,17 @@ body {
 .animate-slide-out {
   animation: slide-out-right 0.3s ease-in forwards;
 }
+.animate-slide-up {
+  animation: slide-in-up 0.3s ease-out forwards;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse-neon,
   .animate-spin-slow,
   .animate-shake,
   .animate-slide-in,
-  .animate-slide-out {
+  .animate-slide-out,
+  .animate-slide-up {
     animation: none;
   }
 }

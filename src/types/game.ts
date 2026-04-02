@@ -14,6 +14,8 @@ export interface RideDefinition {
   breakdownChance: number; // 0-1 per minute
   repairTime: number; // seconds
   unlockCost: number;
+  maxLevel: number;
+  baseLevelUpCost: number;
   attractedVisitors: VisitorType[];
   description: string;
   gridColor: string;
@@ -30,6 +32,7 @@ export interface Ride {
   isAutoRepair: boolean;
   level: number;
   ticksSinceLastBreakdown: number;
+  pendingCash: number;
 }
 
 export interface UpgradeDefinition {

@@ -57,7 +57,7 @@ export const Notifications = () => {
 
   return (
     <div
-      className="pointer-events-none fixed top-16 right-3 z-50 flex w-72 flex-col gap-1.5"
+      className="pointer-events-none fixed right-3 bottom-4 z-50 flex w-72 flex-col gap-1.5"
       role="region"
       aria-label="Game notifications"
       aria-live="polite"
@@ -67,11 +67,11 @@ export const Notifications = () => {
         return (
           <div
             key={notification.id}
-            className={`pixel-panel flex items-start gap-2 px-3 py-2 ${cfg.borderColor} ${cfg.bgColor} animate-slide-in pointer-events-auto backdrop-blur-sm`}
+            className={`pixel-panel flex items-start gap-2 px-3 py-2 ${cfg.borderColor} ${cfg.bgColor} animate-slide-up pointer-events-auto backdrop-blur-sm`}
             style={{ animationDelay: `${index * 50}ms` }}
           >
             <span className={`${cfg.color} mt-0.5 shrink-0`}>{cfg.icon}</span>
-            <span className="flex-1 text-xs leading-snug text-slate-300">{notification.message}</span>
+            <span className="flex-1 text-sm leading-snug text-slate-300">{notification.message}</span>
             <button
               onClick={() => dismissNotification(notification.id)}
               className="mt-0.5 shrink-0 cursor-pointer text-slate-600 transition-colors hover:text-slate-300"
