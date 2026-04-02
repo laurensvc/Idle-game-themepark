@@ -19,13 +19,13 @@ export const VisitorPanel = () => {
       parkDirt: s.parkDirt,
       cleanPark: s.cleanPark,
       isAutoCleanEnabled: s.isAutoCleanEnabled,
-    })),
+    }))
   );
 
   const totalVisitors = visitors.reduce((sum, v) => sum + v.size, 0);
   const typeCounts = visitors.reduce<Record<VisitorType, number>>(
     (acc, v) => ({ ...acc, [v.type]: (acc[v.type] ?? 0) + v.size }),
-    {} as Record<VisitorType, number>,
+    {} as Record<VisitorType, number>
   );
 
   const avgHappiness =

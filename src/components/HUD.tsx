@@ -62,7 +62,7 @@ export const HUD = () => {
         gameTick: s.gameTick,
         rides: s.rides,
         collectAllCash: s.collectAllCash,
-      })),
+      }))
     );
 
   const totalVisitors = visitors.reduce((sum, v) => sum + v.size, 0);

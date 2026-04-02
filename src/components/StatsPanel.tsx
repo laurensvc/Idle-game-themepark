@@ -37,7 +37,7 @@ export const StatsPanel = () => {
     useShallow((s) => ({
       stats: s.stats,
       rides: s.rides,
-    })),
+    }))
   );
 
   const operatingRides = rides.filter((r) => r.status === 'operating').length;

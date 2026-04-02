@@ -69,7 +69,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
   const collectRideCash = useGameStore((s) => s.collectRideCash);
   const selectedRideId = useGameStore((s) => s.selectedRideId);
   const hasAutoRepair = useGameStore(
-    useCallback((s) => purchasedUpgradesIncludeAutoRepairForRide(s.purchasedUpgrades, defId), [defId]),
+    useCallback((s) => purchasedUpgradesIncludeAutoRepairForRide(s.purchasedUpgrades, defId), [defId])
   );
   const def = getRideDefinition(ride.definitionId);
   if (!def) return null;
@@ -103,15 +103,15 @@ export const RideCard = ({ ride }: RideCardProps) => {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-sm leading-none font-bold text-white">{def.name}</span>
-              {ride.level > 1 && (
-                <span className="font-display text-xs text-neon-cyan">L{ride.level}</span>
-              )}
+              {ride.level > 1 && <span className="font-display text-neon-cyan text-xs">L{ride.level}</span>}
             </div>
             {/* Status badge with LED dot */}
             <div
               className={`mt-1 inline-flex items-center gap-1.5 px-1.5 py-0.5 text-xs font-semibold ${statusCfg.color} ${statusCfg.bgClass} ${ride.status === 'broken' ? 'animate-pulse-neon' : ''}`}
             >
-              <span className={`inline-block h-2 w-2 shrink-0 ${statusCfg.dot} ${statusCfg.dotGlow} ${ride.status === 'broken' ? 'animate-pulse' : ''}`} />
+              <span
+                className={`inline-block h-2 w-2 shrink-0 ${statusCfg.dot} ${statusCfg.dotGlow} ${ride.status === 'broken' ? 'animate-pulse' : ''}`}
+              />
               {statusCfg.icon}
               {statusCfg.label}
             </div>
@@ -207,7 +207,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
       {ride.pendingCash > 0 && (
         <button
           onClick={handleCollect}
-          className="neon-border-orange absolute top-2 right-2 flex cursor-pointer items-center gap-1 bg-[#1a1a35] px-2 py-1 text-xs font-bold text-neon-orange transition-transform hover:scale-110"
+          className="neon-border-orange text-neon-orange absolute top-2 right-2 flex cursor-pointer items-center gap-1 bg-[#1a1a35] px-2 py-1 text-xs font-bold transition-transform hover:scale-110"
           aria-label={`Collect ${formatMoney(ride.pendingCash)}`}
         >
           <DollarSign size={12} />

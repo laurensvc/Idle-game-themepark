@@ -26,7 +26,7 @@ export const ShopPanel = () => {
       purchasedUpgrades: s.purchasedUpgrades,
       buyRide: s.buyRide,
       buyUpgrade: s.buyUpgrade,
-    })),
+    }))
   );
 
   const unlockedRideIds = new Set(rides.map((r) => r.definitionId));

@@ -125,13 +125,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         const happinessFactor = state.parkHappiness / 100;
         const dirtFactor = Math.max(0.3, 1 - updated.dirtLevel / 100);
         const baseVisitors = Math.floor(
-          effectiveCapacity * happinessFactor * dirtFactor * (1 + visitorAttraction) * (Math.random() * 0.4 + 0.8),
+          effectiveCapacity * happinessFactor * dirtFactor * (1 + visitorAttraction) * (Math.random() * 0.4 + 0.8)
         );
         updated.currentVisitors = Math.min(effectiveCapacity, baseVisitors);
         updated.totalVisitorsServed += updated.currentVisitors;
 
         const earned = Math.floor(
-          updated.currentVisitors * def.baseCostPerTick * (1 + incomeBoost) * levelIncome * dirtFactor,
+          updated.currentVisitors * def.baseCostPerTick * (1 + incomeBoost) * levelIncome * dirtFactor
         );
         updated.pendingCash = (updated.pendingCash ?? 0) + earned;
 
@@ -146,7 +146,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           const hasAutoRepair = state.purchasedUpgrades.some(
             (id) =>
               getUpgradeDefinition(id)?.rideId === ride.definitionId &&
-              getUpgradeDefinition(id)?.effect === 'auto_repair',
+              getUpgradeDefinition(id)?.effect === 'auto_repair'
           );
           if (hasAutoRepair) {
             updated.isAutoRepair = true;
@@ -186,11 +186,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const avgRideDirt = updatedRides.reduce((sum, r) => sum + r.dirtLevel, 0) / Math.max(1, updatedRides.length);
     const happinessTarget = Math.max(
       10,
-      100 - newParkDirt * 0.3 - avgRideDirt * 0.2 - brokenRides * 15 + operatingRides * 5,
+      100 - newParkDirt * 0.3 - avgRideDirt * 0.2 - brokenRides * 15 + operatingRides * 5
     );
     const newHappiness = Math.max(
       0,
-      Math.min(100, state.parkHappiness + (happinessTarget - state.parkHappiness) * 0.05),
+      Math.min(100, state.parkHappiness + (happinessTarget - state.parkHappiness) * 0.05)
     );
 
     const newVisitors: VisitorGroup[] = [...state.visitors];
@@ -224,7 +224,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const freshNotifications = state.notifications.filter((n) => now - n.timestamp < NOTIFICATION_TTL_MS);
     const allNotifications = [...newNotifications, ...freshNotifications].slice(0, 5);
 
-    const totalPendingEarned = updatedRides.reduce((sum, r) => sum + (r.pendingCash - (state.rides.find((sr) => sr.instanceId === r.instanceId)?.pendingCash ?? 0)), 0);
+    const totalPendingEarned = updatedRides.reduce(
+      (sum, r) => sum + (r.pendingCash - (state.rides.find((sr) => sr.instanceId === r.instanceId)?.pendingCash ?? 0)),
+      0
+    );
 
     const newStats = {
       ...state.stats,
@@ -271,7 +274,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     set({
       rides: state.rides.map((r) =>
-        r.instanceId === instanceId ? { ...r, status: 'repairing' as const, repairProgress: 0, isAutoRepair: false } : r,
+        r.instanceId === instanceId ? { ...r, status: 'repairing' as const, repairProgress: 0, isAutoRepair: false } : r
       ),
       notifications: [
         createNotification('repair', `Repairing ${def?.name ?? 'ride'}...`, instanceId),

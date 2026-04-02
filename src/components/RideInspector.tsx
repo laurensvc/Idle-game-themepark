@@ -48,7 +48,7 @@ export const RideInspector = () => {
       purchasedUpgrades: s.purchasedUpgrades,
       money: s.money,
       buyUpgrade: s.buyUpgrade,
-    })),
+    }))
   );
 
   const ride = rides.find((r) => r.instanceId === selectedRideId);
@@ -84,7 +84,10 @@ export const RideInspector = () => {
       </button>
 
       {/* Ride header */}
-      <div className="pixel-panel bg-park-card flex flex-col items-center gap-2 p-4" style={{ borderColor: def.gridColor }}>
+      <div
+        className="pixel-panel bg-park-card flex flex-col items-center gap-2 p-4"
+        style={{ borderColor: def.gridColor }}
+      >
         <span className="text-5xl leading-none">{def.icon}</span>
         <h2 className="font-display text-center text-sm text-white" style={{ color: def.gridColor }}>
           {def.name}
@@ -113,7 +116,7 @@ export const RideInspector = () => {
       {ride.pendingCash > 0 && (
         <button
           onClick={() => collectRideCash(ride.instanceId)}
-          className="pixel-button animate-pulse-neon w-full cursor-pointer bg-neon-orange/20 py-3 text-sm font-bold text-neon-orange uppercase transition-colors hover:bg-neon-orange/30"
+          className="pixel-button animate-pulse-neon bg-neon-orange/20 text-neon-orange hover:bg-neon-orange/30 w-full cursor-pointer py-3 text-sm font-bold uppercase transition-colors"
           style={{ borderColor: '#f97316' }}
           aria-label={`Collect ${formatMoney(ride.pendingCash)}`}
         >
@@ -124,7 +127,7 @@ export const RideInspector = () => {
 
       {/* Live stats */}
       <div className="pixel-panel bg-park-card space-y-2 p-3">
-        <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Live Stats</div>
+        <div className="mb-2 text-xs font-bold tracking-wider text-slate-500 uppercase">Live Stats</div>
 
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-sm text-slate-400">
@@ -138,7 +141,7 @@ export const RideInspector = () => {
 
         <div className="flex items-center justify-between">
           <span className="text-sm text-slate-400">$/tick</span>
-          <span className="font-display text-sm text-neon-orange">
+          <span className="font-display text-neon-orange text-sm">
             ${Math.floor(def.baseCostPerTick * currentIncomeMult)}
           </span>
         </div>
@@ -171,7 +174,7 @@ export const RideInspector = () => {
               {Math.round(ride.dirtLevel)}%
             </span>
           </div>
-          <div className="pixel-bar h-3 overflow-hidden bg-park-border">
+          <div className="pixel-bar bg-park-border h-3 overflow-hidden">
             <div
               className="h-full transition-all duration-500"
               style={{
@@ -194,13 +197,13 @@ export const RideInspector = () => {
 
       {/* Level-up section */}
       <div className="pixel-panel bg-park-card space-y-2 p-3">
-        <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+        <div className="mb-1 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
           <ArrowUp size={12} className="text-neon-cyan" />
           Level Up
         </div>
 
         {isMaxLevel ? (
-          <div className="text-center text-sm text-neon-green">MAX LEVEL</div>
+          <div className="text-neon-green text-center text-sm">MAX LEVEL</div>
         ) : (
           <>
             <div className="space-y-1 text-xs text-slate-400">
@@ -213,7 +216,8 @@ export const RideInspector = () => {
               <div className="flex justify-between">
                 <span>Income mult</span>
                 <span>
-                  {currentIncomeMult.toFixed(2)}x → <span className="text-neon-orange">{nextIncomeMult.toFixed(2)}x</span>
+                  {currentIncomeMult.toFixed(2)}x →{' '}
+                  <span className="text-neon-orange">{nextIncomeMult.toFixed(2)}x</span>
                 </span>
               </div>
             </div>
@@ -257,7 +261,7 @@ export const RideInspector = () => {
             </span>
             <span className="font-display">{Math.round(ride.repairProgress)}%</span>
           </div>
-          <div className="pixel-bar h-3 overflow-hidden bg-park-border">
+          <div className="pixel-bar bg-park-border h-3 overflow-hidden">
             <div
               className="h-full bg-yellow-400 transition-all duration-1000"
               style={{ width: `${ride.repairProgress}%`, boxShadow: '0 0 8px #eab308' }}
@@ -269,7 +273,7 @@ export const RideInspector = () => {
       {/* Ride upgrades */}
       {rideUpgrades.length > 0 && (
         <div className="pixel-panel bg-park-card space-y-2 p-3">
-          <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+          <div className="mb-1 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
             <Zap size={12} className="text-neon-violet" />
             Ride Upgrades
           </div>
@@ -288,9 +292,9 @@ export const RideInspector = () => {
                 disabled={!isAvailable || !canAfford}
                 className={`pixel-button w-full p-2.5 text-left transition-all duration-150 ${
                   isPurchased
-                    ? 'cursor-default border-neon-green/30 bg-neon-green/5'
+                    ? 'border-neon-green/30 bg-neon-green/5 cursor-default'
                     : isAvailable && canAfford
-                      ? 'cursor-pointer border-park-border bg-park-surface hover:border-neon-violet/60 hover:bg-neon-purple/5'
+                      ? 'border-park-border bg-park-surface hover:border-neon-violet/60 hover:bg-neon-purple/5 cursor-pointer'
                       : 'cursor-not-allowed border-[#1a1a30] bg-[#0f0f22] opacity-50'
                 }`}
               >
@@ -314,7 +318,9 @@ export const RideInspector = () => {
                     {isPurchased ? (
                       <CheckCircle size={16} className="text-green-400" />
                     ) : (
-                      <span className={`text-sm font-black ${canAfford && isAvailable ? 'text-neon-violet' : 'text-slate-600'}`}>
+                      <span
+                        className={`text-sm font-black ${canAfford && isAvailable ? 'text-neon-violet' : 'text-slate-600'}`}
+                      >
                         {formatMoney(upgrade.cost)}
                       </span>
                     )}
