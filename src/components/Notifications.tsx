@@ -50,7 +50,8 @@ const NOTIFICATION_CONFIG: Record<
 };
 
 export const Notifications = () => {
-  const { notifications, dismissNotification } = useGameStore();
+  const notifications = useGameStore((s) => s.notifications);
+  const dismissNotification = useGameStore((s) => s.dismissNotification);
 
   if (notifications.length === 0) return null;
 
@@ -66,7 +67,7 @@ export const Notifications = () => {
         return (
           <div
             key={notification.id}
-            className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${cfg.borderColor} ${cfg.bgColor} animate-slide-in pointer-events-auto backdrop-blur-sm`}
+            className={`pixel-panel flex items-start gap-2 px-3 py-2 ${cfg.borderColor} ${cfg.bgColor} animate-slide-in pointer-events-auto backdrop-blur-sm`}
             style={{ animationDelay: `${index * 50}ms` }}
           >
             <span className={`${cfg.color} mt-0.5 shrink-0`}>{cfg.icon}</span>

@@ -155,3 +155,13 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
 
 export const getUpgradeDefinition = (id: string): UpgradeDefinition | undefined =>
   UPGRADE_DEFINITIONS.find((u) => u.id === id);
+
+/** Matches game store logic: per-ride auto-repair upgrade purchased. */
+export const purchasedUpgradesIncludeAutoRepairForRide = (
+  purchasedUpgradeIds: readonly string[],
+  rideDefinitionId: string
+): boolean =>
+  purchasedUpgradeIds.some((id) => {
+    const u = getUpgradeDefinition(id);
+    return u?.rideId === rideDefinitionId && u?.effect === 'auto_repair';
+  });

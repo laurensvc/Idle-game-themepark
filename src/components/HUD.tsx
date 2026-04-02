@@ -1,4 +1,6 @@
+import { memo, useMemo } from 'react';
 import { Pause, Play, DollarSign, Users, Heart, Clock, TrendingUp } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../store/gameStore';
 
 const formatMoney = (amount: number): string => {
@@ -21,24 +23,50 @@ interface StatPillProps {
   glowClass: string;
 }
 
-const StatPill = ({ icon, label, value, color, glowClass }: StatPillProps) => (
-  <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${color} ${glowClass} bg-[#1a1a35]`}>
+const StatPill = memo(({ icon, label, value, color, glowClass }: StatPillProps) => (
+  <div className={`pixel-panel flex items-center gap-2 px-3 py-2 ${color} ${glowClass} bg-[#1a1a35]`}>
     <span className="opacity-80">{icon}</span>
     <div className="flex flex-col leading-none">
       <span className="text-[10px] font-medium tracking-widest uppercase opacity-50">{label}</span>
-      <span className="font-display text-sm font-bold">{value}</span>
+      <span key={value} className="font-display animate-juicy-pop inline-block origin-left text-sm font-bold">
+        {value}
+      </span>
     </div>
   </div>
-);
+));
+
+StatPill.displayName = 'StatPill';
+
+/** Hoisted so StatPill receives stable icon references (rerender-memo-with-default-value). */
+const statIcons = {
+  cash: <DollarSign size={14} className="text-[#f97316]" />,
+  guests: <Users size={14} className="text-[#06b6d4]" />,
+  earned: <TrendingUp size={14} className="text-[#a78bfa]" />,
+  time: <Clock size={14} className="text-slate-400" />,
+} as const;
 
 export const HUD = () => {
-  const { money, visitors, parkHappiness, parkDirt, stats, isPaused, togglePause, gameTick } = useGameStore();
+  const { money, visitors, parkHappiness, parkDirt, stats, isPaused, togglePause, gameTick } = useGameStore(
+    useShallow((s) => ({
+      money: s.money,
+      visitors: s.visitors,
+      parkHappiness: s.parkHappiness,
+      parkDirt: s.parkDirt,
+      stats: s.stats,
+      isPaused: s.isPaused,
+      togglePause: s.togglePause,
+      gameTick: s.gameTick,
+    }))
+  );
 
   const totalVisitors = visitors.reduce((sum, v) => sum + v.size, 0);
   const happinessColor =
     parkHappiness >= 70 ? 'text-green-400' : parkHappiness >= 40 ? 'text-yellow-400' : 'text-red-400';
   const dirtColor = parkDirt <= 30 ? 'text-green-400' : parkDirt <= 60 ? 'text-yellow-400' : 'text-red-400';
   const dirtLabel = parkDirt <= 20 ? 'Sparkling' : parkDirt <= 40 ? 'Clean' : parkDirt <= 70 ? 'Dirty' : 'Filthy';
+
+  const happyIcon = useMemo(() => <Heart size={14} className={happinessColor} />, [happinessColor]);
+  const dirtIcon = useMemo(() => <span className={`text-xs font-bold ${dirtColor}`}>🧹</span>, [dirtColor]);
 
   return (
     <header className="flex shrink-0 items-center justify-between border-b border-[#2a2a50] bg-[#0d0d24] px-4 py-2">
@@ -55,42 +83,42 @@ export const HUD = () => {
       {/* Stats row */}
       <div className="flex flex-wrap items-center gap-2">
         <StatPill
-          icon={<DollarSign size={14} className="text-[#f97316]" />}
+          icon={statIcons.cash}
           label="Cash"
           value={formatMoney(money)}
           color="border-[#f97316]/30"
           glowClass="neon-border-orange"
         />
         <StatPill
-          icon={<Users size={14} className="text-[#06b6d4]" />}
+          icon={statIcons.guests}
           label="Guests"
           value={totalVisitors.toString()}
           color="border-[#06b6d4]/30"
           glowClass=""
         />
         <StatPill
-          icon={<Heart size={14} className={happinessColor} />}
+          icon={happyIcon}
           label="Happy"
           value={`${Math.round(parkHappiness)}%`}
           color={parkHappiness >= 70 ? 'border-green-500/30' : 'border-yellow-500/30'}
           glowClass=""
         />
         <StatPill
-          icon={<span className={`text-xs font-bold ${dirtColor}`}>🧹</span>}
+          icon={dirtIcon}
           label="Park"
           value={dirtLabel}
           color={parkDirt <= 30 ? 'border-green-500/30' : parkDirt <= 60 ? 'border-yellow-500/30' : 'border-red-500/30'}
           glowClass=""
         />
         <StatPill
-          icon={<TrendingUp size={14} className="text-[#a78bfa]" />}
+          icon={statIcons.earned}
           label="Earned"
           value={formatMoney(stats.totalEarnings)}
           color="border-[#7c3aed]/30"
           glowClass=""
         />
         <StatPill
-          icon={<Clock size={14} className="text-slate-400" />}
+          icon={statIcons.time}
           label="Time"
           value={formatTime(gameTick)}
           color="border-slate-600/30"
@@ -101,7 +129,7 @@ export const HUD = () => {
       {/* Pause button */}
       <button
         onClick={togglePause}
-        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-bold transition-all duration-200 ${
+        className={`pixel-button flex cursor-pointer items-center gap-2 px-4 py-2 text-sm font-bold transition-all duration-200 ${
           isPaused
             ? 'neon-border-orange border-[#f97316] bg-[#f97316]/10 text-[#f97316]'
             : 'border-[#7c3aed]/50 text-[#a78bfa] hover:border-[#7c3aed] hover:bg-[#7c3aed]/10'

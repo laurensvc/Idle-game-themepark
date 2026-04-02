@@ -1,4 +1,5 @@
 import { ShoppingBag, Lock, CheckCircle, ChevronRight } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../store/gameStore';
 import { RIDE_DEFINITIONS, getRideDefinition } from '../data/rides';
 import { UPGRADE_DEFINITIONS, getUpgradeDefinition } from '../data/upgrades';
@@ -18,7 +19,15 @@ const EFFECT_LABELS: Record<string, string> = {
 };
 
 export const ShopPanel = () => {
-  const { money, rides, purchasedUpgrades, buyRide, buyUpgrade } = useGameStore();
+  const { money, rides, purchasedUpgrades, buyRide, buyUpgrade } = useGameStore(
+    useShallow((s) => ({
+      money: s.money,
+      rides: s.rides,
+      purchasedUpgrades: s.purchasedUpgrades,
+      buyRide: s.buyRide,
+      buyUpgrade: s.buyUpgrade,
+    }))
+  );
 
   const unlockedRideIds = new Set(rides.map((r) => r.definitionId));
   const availableRides = RIDE_DEFINITIONS.filter((def) => !unlockedRideIds.has(def.id));
@@ -40,7 +49,7 @@ export const ShopPanel = () => {
                   key={def.id}
                   onClick={() => buyRide(def.id)}
                   disabled={!canAfford}
-                  className={`w-full cursor-pointer rounded-lg border p-2.5 text-left transition-all duration-150 ${
+                  className={`pixel-button w-full cursor-pointer p-2.5 text-left transition-all duration-150 ${
                     canAfford
                       ? 'border-park-border hover:border-neon-orange/60 hover:bg-neon-orange/5 bg-park-surface'
                       : 'cursor-not-allowed border-[#1a1a30] bg-[#0f0f22] opacity-50'
@@ -99,7 +108,7 @@ export const ShopPanel = () => {
                 key={upgrade.id}
                 onClick={() => isAvailable && canAfford && buyUpgrade(upgrade.id)}
                 disabled={!isAvailable || !canAfford}
-                className={`w-full rounded-lg border p-2.5 text-left transition-all duration-150 ${
+                className={`pixel-button w-full p-2.5 text-left transition-all duration-150 ${
                   isPurchased
                     ? 'border-neon-green/30 bg-neon-green/5 cursor-default'
                     : isAvailable && canAfford

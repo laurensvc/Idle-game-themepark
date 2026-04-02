@@ -1,6 +1,8 @@
+import { useCallback } from 'react';
 import { Wrench, Zap, Users, AlertTriangle, CheckCircle, Settings } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { getRideDefinition } from '../data/rides';
+import { purchasedUpgradesIncludeAutoRepairForRide } from '../data/upgrades';
 import type { Ride } from '../types/game';
 
 interface RideCardProps {
@@ -46,15 +48,18 @@ const STATUS_CONFIG = {
 };
 
 export const RideCard = ({ ride }: RideCardProps) => {
-  const { repairRide, selectRide, selectedRideId, purchasedUpgrades } = useGameStore();
+  const defId = ride.definitionId;
+  const repairRide = useGameStore((s) => s.repairRide);
+  const selectRide = useGameStore((s) => s.selectRide);
+  const selectedRideId = useGameStore((s) => s.selectedRideId);
+  const hasAutoRepair = useGameStore(
+    useCallback((s) => purchasedUpgradesIncludeAutoRepairForRide(s.purchasedUpgrades, defId), [defId])
+  );
   const def = getRideDefinition(ride.definitionId);
   if (!def) return null;
 
   const isSelected = selectedRideId === ride.instanceId;
   const statusCfg = STATUS_CONFIG[ride.status];
-  const hasAutoRepair = purchasedUpgrades.some(
-    (id) => id === `${ride.definitionId}_auto_repair` || id === `${ride.definitionId.split('_')[0]}_auto_repair`
-  );
   const thrillBars = Array.from({ length: 5 }, (_, i) => i < def.thrillLevel);
 
   const handleRepair = (e: React.MouseEvent) => {
@@ -65,7 +70,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
   return (
     <div
       onClick={() => selectRide(isSelected ? null : ride.instanceId)}
-      className={`relative cursor-pointer rounded-xl border-2 p-3 transition-all duration-200 select-none ${statusCfg.borderClass} ${statusCfg.bgClass} ${isSelected ? 'ring-neon-purple ring-offset-park-bg ring-2 ring-offset-1' : 'hover:brightness-125'} bg-park-card`}
+      className={`pixel-panel relative cursor-pointer p-3 transition-all duration-200 select-none ${statusCfg.borderClass} ${statusCfg.bgClass} ${isSelected ? 'ring-neon-purple ring-offset-park-bg ring-2 ring-offset-1' : 'hover:brightness-125'} bg-park-card ${ride.status === 'broken' ? 'animate-shake' : ''}`}
       role="button"
       aria-label={`${def.name} - ${statusCfg.label}`}
     >
@@ -84,7 +89,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
 
         {/* Auto repair badge */}
         {hasAutoRepair && (
-          <div className="bg-neon-purple/20 border-neon-purple/40 flex items-center gap-1 rounded border px-1.5 py-0.5">
+          <div className="bg-neon-purple/20 border-neon-purple/40 flex items-center gap-1 border px-1.5 py-0.5">
             <Zap size={10} className="text-neon-violet" />
             <span className="text-neon-violet text-[9px] font-bold">AUTO</span>
           </div>
@@ -98,7 +103,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
           {thrillBars.map((filled, i) => (
             <div
               key={i}
-              className={`h-1.5 w-3 rounded-sm ${filled ? 'bg-neon-orange' : 'bg-park-border'}`}
+              className={`h-1.5 w-3 ${filled ? 'bg-neon-orange' : 'bg-park-border'}`}
               style={filled ? { boxShadow: '0 0 4px #f97316' } : undefined}
             />
           ))}
@@ -112,9 +117,9 @@ export const RideCard = ({ ride }: RideCardProps) => {
             <span className="tracking-wider uppercase">Dirt</span>
             <span>{Math.round(ride.dirtLevel)}%</span>
           </div>
-          <div className="bg-park-border h-1 overflow-hidden rounded-full">
+          <div className="bg-park-border h-1 overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-500"
+              className="h-full transition-all duration-500"
               style={{
                 width: `${ride.dirtLevel}%`,
                 background: ride.dirtLevel > 70 ? '#ef4444' : ride.dirtLevel > 40 ? '#eab308' : '#8b7355',
@@ -143,9 +148,9 @@ export const RideCard = ({ ride }: RideCardProps) => {
             </span>
             <span>{Math.round(ride.repairProgress)}%</span>
           </div>
-          <div className="bg-park-border h-1.5 overflow-hidden rounded-full">
+          <div className="bg-park-border h-1.5 overflow-hidden">
             <div
-              className="h-full rounded-full bg-yellow-400 transition-all duration-1000"
+              className="h-full bg-yellow-400 transition-all duration-1000"
               style={{
                 width: `${ride.repairProgress}%`,
                 boxShadow: '0 0 6px #eab308',
@@ -159,7 +164,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
       {ride.status === 'broken' && (
         <button
           onClick={handleRepair}
-          className="bg-neon-orange/20 border-neon-orange/50 text-neon-orange hover:bg-neon-orange/30 neon-border-orange mt-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-1.5 text-xs font-bold tracking-wider uppercase transition-colors duration-150"
+          className="pixel-button bg-neon-orange/20 border-neon-orange/50 text-neon-orange hover:bg-neon-orange/30 neon-border-orange mt-2 flex w-full cursor-pointer items-center justify-center gap-2 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors duration-150"
           aria-label={`Repair ${def.name}`}
         >
           <Wrench size={12} />
@@ -176,7 +181,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
 
       {/* Ride color accent stripe */}
       <div
-        className="absolute top-0 bottom-0 left-0 w-1 rounded-l-xl opacity-80"
+        className="absolute top-0 bottom-0 left-0 w-1 opacity-80"
         style={{ background: def.gridColor, boxShadow: `0 0 8px ${def.gridColor}` }}
       />
     </div>

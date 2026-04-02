@@ -1,4 +1,5 @@
 import { Users, Heart } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../store/gameStore';
 import type { VisitorType } from '../types/game';
 
@@ -11,7 +12,15 @@ const VISITOR_CONFIG: Record<VisitorType, { label: string; icon: string; color: 
 };
 
 export const VisitorPanel = () => {
-  const { visitors, parkHappiness, parkDirt, cleanPark, isAutoCleanEnabled } = useGameStore();
+  const { visitors, parkHappiness, parkDirt, cleanPark, isAutoCleanEnabled } = useGameStore(
+    useShallow((s) => ({
+      visitors: s.visitors,
+      parkHappiness: s.parkHappiness,
+      parkDirt: s.parkDirt,
+      cleanPark: s.cleanPark,
+      isAutoCleanEnabled: s.isAutoCleanEnabled,
+    }))
+  );
 
   const totalVisitors = visitors.reduce((sum, v) => sum + v.size, 0);
   const typeCounts = visitors.reduce<Record<VisitorType, number>>(
@@ -53,9 +62,9 @@ export const VisitorPanel = () => {
                     {count}
                   </span>
                 </div>
-                <div className="h-1 overflow-hidden rounded-full bg-[#2a2a50]">
+                <div className="h-1 overflow-hidden bg-[#2a2a50]">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full transition-all duration-500"
                     style={{
                       width: `${pct}%`,
                       background: cfg.color,
@@ -83,9 +92,9 @@ export const VisitorPanel = () => {
             {avgHappiness}%
           </span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-[#2a2a50]">
+        <div className="h-2 overflow-hidden bg-[#2a2a50]">
           <div
-            className="h-full rounded-full transition-all duration-500"
+            className="h-full transition-all duration-500"
             style={{
               width: `${avgHappiness}%`,
               background: happinessColor,
@@ -114,9 +123,9 @@ export const VisitorPanel = () => {
             {Math.round(100 - parkDirt)}%
           </span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-[#2a2a50]">
+        <div className="h-2 overflow-hidden bg-[#2a2a50]">
           <div
-            className="h-full rounded-full transition-all duration-500"
+            className="h-full transition-all duration-500"
             style={{
               width: `${100 - parkDirt}%`,
               background: parkDirt <= 30 ? '#22c55e' : parkDirt <= 60 ? '#eab308' : '#ef4444',
@@ -126,7 +135,7 @@ export const VisitorPanel = () => {
         {!isAutoCleanEnabled && (
           <button
             onClick={cleanPark}
-            className="mt-2 w-full cursor-pointer rounded-lg border border-[#22c55e]/30 bg-[#22c55e]/10 py-1.5 text-[10px] font-bold tracking-wider text-green-400 uppercase transition-colors duration-150 hover:bg-[#22c55e]/20"
+            className="pixel-button mt-2 w-full cursor-pointer bg-[#22c55e]/10 py-1.5 text-[10px] font-bold tracking-wider text-green-400 uppercase transition-colors duration-150 hover:bg-[#22c55e]/20"
             aria-label="Clean the park"
           >
             🧹 Clean Park

@@ -1,4 +1,5 @@
 import { BarChart2, Trophy, Wrench, Clock } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../store/gameStore';
 
 const formatMoney = (amount: number): string => {
@@ -32,7 +33,12 @@ const StatRow = ({ icon, label, value }: StatRowProps) => (
 );
 
 export const StatsPanel = () => {
-  const { stats, rides } = useGameStore();
+  const { stats, rides } = useGameStore(
+    useShallow((s) => ({
+      stats: s.stats,
+      rides: s.rides,
+    }))
+  );
 
   const operatingRides = rides.filter((r) => r.status === 'operating').length;
   const brokenRides = rides.filter((r) => r.status === 'broken').length;
@@ -72,15 +78,15 @@ export const StatsPanel = () => {
       <div className="border-t border-[#2a2a50] pt-3">
         <div className="mb-2 text-[10px] tracking-wider text-slate-500 uppercase">Ride Status</div>
         <div className="grid grid-cols-3 gap-1.5">
-          <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-1.5 text-center">
+          <div className="pixel-panel bg-green-500/10 p-1.5 text-center">
             <div className="text-lg font-black text-green-400">{operatingRides}</div>
             <div className="text-[9px] tracking-wide text-green-400/70 uppercase">Open</div>
           </div>
-          <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-1.5 text-center">
+          <div className="pixel-panel bg-red-500/10 p-1.5 text-center">
             <div className="text-lg font-black text-red-400">{brokenRides}</div>
             <div className="text-[9px] tracking-wide text-red-400/70 uppercase">Broken</div>
           </div>
-          <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-1.5 text-center">
+          <div className="pixel-panel bg-yellow-500/10 p-1.5 text-center">
             <div className="text-lg font-black text-yellow-400">{repairingRides}</div>
             <div className="text-[9px] tracking-wide text-yellow-400/70 uppercase">Repair</div>
           </div>

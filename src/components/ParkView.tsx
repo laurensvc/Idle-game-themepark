@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { RideCard } from './RideCard';
-import { ShopPanel } from './ShopPanel';
-import { VisitorPanel } from './VisitorPanel';
-import { StatsPanel } from './StatsPanel';
 import { ShoppingBag, Users, BarChart2, Layers } from 'lucide-react';
+
+const ShopPanel = lazy(() => import('./ShopPanel').then((m) => ({ default: m.ShopPanel })));
+const VisitorPanel = lazy(() => import('./VisitorPanel').then((m) => ({ default: m.VisitorPanel })));
+const StatsPanel = lazy(() => import('./StatsPanel').then((m) => ({ default: m.StatsPanel })));
+
+const panelFallback = (
+  <div className="text-xs text-slate-500" role="status">
+    Loading…
+  </div>
+);
 
 type SideTab = 'rides' | 'shop' | 'visitors' | 'stats';
 
@@ -16,7 +23,7 @@ const TABS: { id: SideTab; label: string; icon: React.ReactNode }[] = [
 ];
 
 export const ParkView = () => {
-  const { rides } = useGameStore();
+  const rides = useGameStore((s) => s.rides);
   const [activeTab, setActiveTab] = useState<SideTab>('rides');
 
   const brokenCount = rides.filter((r) => r.status === 'broken').length;
@@ -70,7 +77,7 @@ export const ParkView = () => {
           {Array.from({ length: Math.max(0, 3 - rides.length) }, (_, i) => (
             <div
               key={`empty-${i}`}
-              className="flex h-28 items-center justify-center rounded-xl border-2 border-dashed border-[#2a2a50]/50"
+              className="border-park-border/50 bg-park-card flex h-28 items-center justify-center border-2 border-dashed opacity-50"
             >
               <span className="text-xl text-[#2a2a50]">+</span>
             </div>
@@ -95,16 +102,11 @@ export const ParkView = () => {
               {tab.icon}
               {tab.label}
               {tab.id === 'rides' && brokenCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white">
+                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center bg-red-500 text-[8px] font-black text-white">
                   {brokenCount}
                 </span>
               )}
-              {activeTab === tab.id && (
-                <div
-                  className="absolute right-0 bottom-0 left-0 h-0.5 bg-[#7c3aed]"
-                  style={{ boxShadow: '0 0 8px #7c3aed' }}
-                />
-              )}
+              {activeTab === tab.id && <div className="bg-neon-purple absolute right-0 bottom-0 left-0 h-1" />}
             </button>
           ))}
         </div>
@@ -124,9 +126,21 @@ export const ParkView = () => {
               )}
             </div>
           )}
-          {activeTab === 'shop' && <ShopPanel />}
-          {activeTab === 'visitors' && <VisitorPanel />}
-          {activeTab === 'stats' && <StatsPanel />}
+          {activeTab === 'shop' && (
+            <Suspense fallback={panelFallback}>
+              <ShopPanel />
+            </Suspense>
+          )}
+          {activeTab === 'visitors' && (
+            <Suspense fallback={panelFallback}>
+              <VisitorPanel />
+            </Suspense>
+          )}
+          {activeTab === 'stats' && (
+            <Suspense fallback={panelFallback}>
+              <StatsPanel />
+            </Suspense>
+          )}
         </div>
       </aside>
     </div>
