@@ -1,4 +1,4 @@
-import type { UpgradeDefinition } from '../types/game'
+import type { UpgradeDefinition } from '../types/game';
 
 export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   // Global upgrades
@@ -151,7 +151,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     effect: 'capacity_boost',
     value: 0.4,
   },
-]
+];
 
 export const getUpgradeDefinition = (id: string): UpgradeDefinition | undefined =>
-  UPGRADE_DEFINITIONS.find(u => u.id === id)
+  UPGRADE_DEFINITIONS.find((u) => u.id === id);

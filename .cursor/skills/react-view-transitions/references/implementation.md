@@ -38,7 +38,7 @@ Do not write your own animation CSS — the recipes handle staggered timing, mot
 For every persistent element identified in Step 1, add a `viewTransitionName` style to pull it out of the page content's transition snapshot:
 
 ```jsx
-<header style={{ viewTransitionName: "site-header" }}>...</header>
+<header style={{ viewTransitionName: 'site-header' }}>...</header>
 ```
 
 Then add CSS to prevent the element from animating during page transitions:
@@ -70,14 +70,14 @@ Then wrap each **page component** (not layout) in a type-keyed `<ViewTransition>
 ```jsx
 <ViewTransition
   enter={{
-    "nav-forward": "nav-forward",
-    "nav-back": "nav-back",
-    default: "none",
+    'nav-forward': 'nav-forward',
+    'nav-back': 'nav-back',
+    default: 'none',
   }}
   exit={{
-    "nav-forward": "nav-forward",
-    "nav-back": "nav-back",
-    default: "none",
+    'nav-forward': 'nav-forward',
+    'nav-back': 'nav-back',
+    default: 'none',
   }}
   default="none"
 >
@@ -88,6 +88,7 @@ Then wrap each **page component** (not layout) in a type-keyed `<ViewTransition>
 The `nav-forward` and `nav-back` CSS classes from `css-recipes.md` produce horizontal slides. For simpler apps where directional motion isn't needed, a bare `<ViewTransition default="none">` wrapper with `enter="fade-in"` / `exit="fade-out"` works too.
 
 **Rules:**
+
 - Always pair `enter` with `exit` — without an exit animation, the old page disappears instantly while the new one animates in.
 - Always include `default: "none"` in type map objects and `default="none"` on the component — otherwise it fires on every transition.
 - Place the directional `<ViewTransition>` in each page component, not in a layout. Layouts persist across navigations and never trigger enter/exit.
@@ -114,6 +115,7 @@ For every `<Suspense>` boundary identified in Step 1, wrap the fallback and cont
 This example uses `slide-down` / `slide-up` for directional vertical motion. For a simpler reveal, a bare `<ViewTransition>` around the `<Suspense>` gives a cross-fade with zero configuration. Choose based on the spatial meaning — consult the "Choosing the Right Animation Style" table in the main skill file.
 
 **Rules:**
+
 - Always use `default="none"` on the content `<ViewTransition>` to prevent re-animation on revalidation or unrelated transitions.
 - Use simple string props (not type maps) on Suspense `<ViewTransition>`s — Suspense resolves fire as separate transitions with no type, so type-keyed props won't match.
 
@@ -150,6 +152,7 @@ For list items that should animate individually on enter/exit, add a per-item `<
 ```
 
 **Rules:**
+
 - Names must be globally unique — use prefixes like `photo-${id}`.
 - Add `default="none"` on list-side shared elements to prevent per-item cross-fades on filter/search updates.
 - Never use a fade-out exit on pages with shared element morphs — the page dissolving conflicts with the morph, causing a flash. Use a directional slide exit instead.

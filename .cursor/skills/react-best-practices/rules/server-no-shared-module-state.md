@@ -14,20 +14,20 @@ Treat module scope on the server as process-wide shared memory, not request-loca
 **Incorrect (request data leaks across concurrent renders):**
 
 ```tsx
-let currentUser: User | null = null
+let currentUser: User | null = null;
 
 async function loadCurrentUser() {
-  currentUser = await auth()
-  return currentUser
+  currentUser = await auth();
+  return currentUser;
 }
 
 export default async function Page() {
-  await loadCurrentUser()
-  return <Dashboard />
+  await loadCurrentUser();
+  return <Dashboard />;
 }
 
 async function Dashboard() {
-  return <div>{currentUser?.name}</div>
+  return <div>{currentUser?.name}</div>;
 }
 ```
 
@@ -36,35 +36,35 @@ If two requests overlap, request A can set `currentUser`, then request B overwri
 **Correct (pass request data explicitly or use per-request caching):**
 
 ```tsx
-import { cache } from 'react'
+import { cache } from 'react';
 
 const getCurrentUser = cache(async () => {
-  return await auth()
-})
+  return await auth();
+});
 
 export default async function Page() {
-  const user = await getCurrentUser()
-  return <Dashboard user={user} />
+  const user = await getCurrentUser();
+  return <Dashboard user={user} />;
 }
 
 function Dashboard({ user }: { user: User | null }) {
-  return <div>{user?.name}</div>
+  return <div>{user?.name}</div>;
 }
 ```
 
 **Incorrect (SSR client component reads shared module state):**
 
 ```tsx
-let currentTheme = 'light'
+let currentTheme = 'light';
 
 export default async function Page() {
-  currentTheme = (await getThemeFromCookies()) ?? 'light'
-  return <ThemeShell />
+  currentTheme = (await getThemeFromCookies()) ?? 'light';
+  return <ThemeShell />;
 }
 
-'use client'
+('use client');
 function ThemeShell() {
-  return <div data-theme={currentTheme}>...</div>
+  return <div data-theme={currentTheme}>...</div>;
 }
 ```
 
@@ -74,13 +74,13 @@ Even though `ThemeShell` is a client component, its initial render during SSR ca
 
 ```tsx
 export default async function Page() {
-  const theme = (await getThemeFromCookies()) ?? 'light'
-  return <ThemeShell theme={theme} />
+  const theme = (await getThemeFromCookies()) ?? 'light';
+  return <ThemeShell theme={theme} />;
 }
 
-'use client'
+('use client');
 function ThemeShell({ theme }: { theme: string }) {
-  return <div data-theme={theme}>...</div>
+  return <div data-theme={theme}>...</div>;
 }
 ```
 

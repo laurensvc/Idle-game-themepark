@@ -1,4 +1,4 @@
-import type { RideDefinition } from '../types/game'
+import type { RideDefinition } from '../types/game';
 
 export const RIDE_DEFINITIONS: RideDefinition[] = [
   {
@@ -85,7 +85,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     description: 'Friendly chaos for all ages. Frequently needs maintenance.',
     gridColor: '#eab308',
   },
-]
+];
 
-export const getRideDefinition = (id: string): RideDefinition | undefined =>
-  RIDE_DEFINITIONS.find(r => r.id === id)
+export const getRideDefinition = (id: string): RideDefinition | undefined => RIDE_DEFINITIONS.find((r) => r.id === id);
