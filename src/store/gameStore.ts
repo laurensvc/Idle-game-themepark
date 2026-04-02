@@ -5,7 +5,8 @@ import { getUpgradeDefinition } from '../data/upgrades';
 import { playGameSfx } from '../audio/soundManager';
 
 const TICK_INTERVAL_MS = 1000;
-const NOTIFICATION_TTL_MS = 5000;
+/** Toast / in-game notification lifetime (keep Sonner duration in sync). */
+export const NOTIFICATION_TTL_MS = 5000;
 const VISITOR_TYPES: VisitorType[] = ['family', 'thrill_seeker', 'child', 'elderly', 'teen'];
 const AUDIO_SETTINGS_STORAGE_KEY = 'idlepark_audio_settings_v1';
 

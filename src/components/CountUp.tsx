@@ -77,7 +77,7 @@ export default function CountUp({
 
       return separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
     },
-    [maxDecimals, separator],
+    [maxDecimals, separator]
   );
 
   const display = useCallback(
@@ -85,7 +85,7 @@ export default function CountUp({
       const fd = formatDisplayRef.current;
       return fd ? fd(latest) : formatValue(latest);
     },
-    [formatValue],
+    [formatValue]
   );
 
   useEffect(() => {
@@ -104,11 +104,14 @@ export default function CountUp({
         motionValue.set(direction === 'down' ? from : to);
       }, delay * 1000);
 
-      const durationTimeoutId = window.setTimeout(() => {
-        if (typeof onEnd === 'function') {
-          onEnd();
-        }
-      }, delay * 1000 + duration * 1000);
+      const durationTimeoutId = window.setTimeout(
+        () => {
+          if (typeof onEnd === 'function') {
+            onEnd();
+          }
+        },
+        delay * 1000 + duration * 1000
+      );
 
       return () => {
         window.clearTimeout(timeoutId);

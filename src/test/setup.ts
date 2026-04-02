@@ -7,7 +7,7 @@ class IntersectionObserverMock implements IntersectionObserver {
   readonly thresholds: ReadonlyArray<number> = [];
   constructor(
     public callback: IntersectionObserverCallback,
-    _options?: IntersectionObserverInit,
+    _options?: IntersectionObserverInit
   ) {}
   observe(target: Element) {
     const self: IntersectionObserver = this;
@@ -21,3 +21,9 @@ class IntersectionObserverMock implements IntersectionObserver {
 }
 
 globalThis.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
+
+globalThis.ResizeObserver = class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;

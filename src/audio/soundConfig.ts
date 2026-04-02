@@ -22,7 +22,7 @@ export const SOUND_FILE_PATHS: Record<SoundId, string> = {
 };
 
 export const SOUND_BASE_VOLUME: Record<SoundId, number> = {
-  ui_click: 0.45,
+  ui_click: 0.05,
   ui_toggle: 0.5,
   cash_collect: 0.7,
   purchase: 0.65,

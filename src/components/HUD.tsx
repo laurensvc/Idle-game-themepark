@@ -1,7 +1,12 @@
 import { memo, useMemo } from 'react';
 import { Pause, Play, DollarSign, Users, Heart, Clock, TrendingUp, Coins, Volume2, VolumeX, Music } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { useGameStore } from '../store/gameStore';
+import { useGameStore } from '@/store/gameStore';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
 import CountUp from './CountUp';
 
 const formatMoney = (amount: number): string => {
@@ -33,45 +38,50 @@ interface StatPillProps {
   icon: React.ReactNode;
   label: string;
   value: string;
-  color: string;
-  glowClass: string;
+  borderAccent?: string;
   animate?: boolean;
   countUp?: StatPillCountUp;
 }
 
-const StatPill = memo(({ icon, label, value, color, glowClass, animate = true, countUp }: StatPillProps) => (
-  <div className={`pixel-panel flex items-center gap-2.5 px-3.5 py-2 ${color} ${glowClass} bg-[#1a1a35]`}>
-    <span className="opacity-80">{icon}</span>
-    <div className="flex flex-col leading-none">
-      <span className="text-xs font-medium tracking-widest uppercase opacity-50">{label}</span>
+const StatPill = memo(({ icon, label, value, borderAccent, animate = true, countUp }: StatPillProps) => (
+  <Card
+    size="sm"
+    className={cn(
+      'ring-foreground/10 flex flex-row items-center gap-2.5 py-2 pr-3 pl-3 shadow-xs ring-1',
+      borderAccent
+    )}
+  >
+    <span className="text-muted-foreground">{icon}</span>
+    <div className="flex min-w-0 flex-col leading-none">
+      <span className="text-muted-foreground text-[10px] font-medium tracking-widest uppercase">{label}</span>
       {countUp ? (
         <CountUp
           to={countUp.to}
           formatDisplay={countUp.formatDisplay}
           separator={countUp.separator ?? ''}
           duration={countUp.duration ?? HUD_COUNT_DURATION}
-          className="font-display inline-block origin-left text-base font-bold tabular-nums"
+          className="font-heading text-foreground inline-block text-sm font-bold tabular-nums"
           startWhen
         />
       ) : (
         <span
           key={animate ? value : undefined}
-          className={`font-display inline-block origin-left text-base font-bold ${animate ? 'animate-juicy-pop' : ''}`}
+          className={cn('font-heading text-foreground inline-block text-sm font-bold', animate && 'animate-juicy-pop')}
         >
           {value}
         </span>
       )}
     </div>
-  </div>
+  </Card>
 ));
 
 StatPill.displayName = 'StatPill';
 
 const statIcons = {
-  cash: <DollarSign size={16} className="text-[#f97316]" />,
-  guests: <Users size={16} className="text-[#06b6d4]" />,
-  earned: <TrendingUp size={16} className="text-[#a78bfa]" />,
-  time: <Clock size={16} className="text-slate-400" />,
+  cash: <DollarSign size={16} className="text-neon-orange" />,
+  guests: <Users size={16} className="text-neon-cyan" />,
+  earned: <TrendingUp size={16} className="text-neon-violet" />,
+  time: <Clock size={16} className="text-muted-foreground" />,
 } as const;
 
 export const HUD = () => {
@@ -121,151 +131,146 @@ export const HUD = () => {
   const dirtLabel = parkDirt <= 20 ? 'Sparkling' : parkDirt <= 40 ? 'Clean' : parkDirt <= 70 ? 'Dirty' : 'Filthy';
 
   const happyIcon = useMemo(() => <Heart size={14} className={happinessColor} />, [happinessColor]);
-  const dirtIcon = useMemo(() => <span className={`text-xs font-bold ${dirtColor}`}>🧹</span>, [dirtColor]);
+  const dirtIcon = useMemo(() => <span className={cn('text-xs font-bold', dirtColor)}>🧹</span>, [dirtColor]);
 
   return (
-    <header className="flex shrink-0 items-center justify-between border-b border-[#2a2a50] bg-[#0d0d24] px-4 py-2">
-      {/* Logo */}
-      <div className="flex items-center gap-3">
-        <div className="font-display neon-text-purple text-2xl font-black tracking-tight text-[#a78bfa]">
-          IDLE<span className="neon-text-orange text-[#f97316]">PARK</span>
+    <header className="bg-card/80 flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2 backdrop-blur-md">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="font-heading neon-text-purple text-neon-violet text-lg font-black tracking-tight sm:text-xl">
+          IDLE<span className="neon-text-orange text-neon-orange">PARK</span>
         </div>
-        <div className="hidden text-xs font-medium tracking-widest text-[#4a4a70] uppercase sm:block">
+        <Separator orientation="vertical" className="hidden h-8 sm:block" />
+        <div className="text-muted-foreground hidden text-xs font-medium tracking-widest uppercase sm:block">
           Theme Park Tycoon
         </div>
       </div>
 
-      {/* Stats row */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
         <StatPill
           icon={statIcons.cash}
           label="Cash"
           value={formatMoney(money)}
-          color="border-[#f97316]/30"
-          glowClass="neon-border-orange"
+          borderAccent="border-neon-orange/25"
           countUp={{ to: money, formatDisplay: formatMoneyCount }}
         />
         <StatPill
           icon={statIcons.guests}
           label="Guests"
           value={totalVisitors.toString()}
-          color="border-[#06b6d4]/30"
-          glowClass=""
+          borderAccent="border-neon-cyan/25"
           countUp={{ to: totalVisitors, separator: ',' }}
         />
         <StatPill
           icon={happyIcon}
           label="Happy"
           value={`${Math.round(parkHappiness)}%`}
-          color={parkHappiness >= 70 ? 'border-green-500/30' : 'border-yellow-500/30'}
-          glowClass=""
+          borderAccent={
+            parkHappiness >= 70
+              ? 'border-green-500/25'
+              : parkHappiness >= 40
+                ? 'border-yellow-500/25'
+                : 'border-red-500/25'
+          }
           countUp={{ to: parkHappiness, formatDisplay: formatHappinessCount }}
         />
         <StatPill
           icon={dirtIcon}
           label="Park"
           value={dirtLabel}
-          color={parkDirt <= 30 ? 'border-green-500/30' : parkDirt <= 60 ? 'border-yellow-500/30' : 'border-red-500/30'}
-          glowClass=""
+          borderAccent={
+            parkDirt <= 30 ? 'border-green-500/25' : parkDirt <= 60 ? 'border-yellow-500/25' : 'border-red-500/25'
+          }
         />
         <StatPill
           icon={statIcons.earned}
           label="Earned"
           value={formatMoney(stats.totalEarnings)}
-          color="border-[#7c3aed]/30"
-          glowClass=""
+          borderAccent="border-neon-purple/25"
           countUp={{ to: stats.totalEarnings, formatDisplay: formatMoneyCount }}
         />
         <StatPill
           icon={statIcons.time}
           label="Time"
           value={formatTime(gameTick)}
-          color="border-slate-600/30"
-          glowClass=""
+          borderAccent="border-muted"
           animate={false}
         />
       </div>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-2">
-        {/* Collect All button */}
-        {totalPendingCash > 0 && (
-          <button
-            onClick={collectAllCash}
-            className="pixel-button neon-border-orange flex cursor-pointer items-center gap-2 border-[#f97316] bg-[#f97316]/10 px-3 py-2 text-sm font-bold text-[#f97316] transition-all duration-200 hover:bg-[#f97316]/20"
-            aria-label={`Collect all cash: ${formatMoney(totalPendingCash)}`}
-          >
-            <Coins size={14} />
-            <CountUp
-              to={totalPendingCash}
-              formatDisplay={formatMoneyCount}
-              duration={0.65}
-              className="font-bold tabular-nums"
-              startWhen
-            />
-          </button>
-        )}
+      <div className="flex shrink-0 items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={totalPendingCash <= 0}
+          onClick={collectAllCash}
+          className="border-neon-orange/50 text-neon-orange hover:bg-neon-orange/10 gap-1.5 font-bold disabled:opacity-40"
+          aria-label={
+            totalPendingCash > 0
+              ? `Collect all cash: ${formatMoney(totalPendingCash)}`
+              : 'Collect all cash (nothing to collect)'
+          }
+        >
+          <Coins size={14} />
+          <CountUp
+            to={totalPendingCash}
+            formatDisplay={formatMoneyCount}
+            duration={0.65}
+            className="font-bold tabular-nums"
+            startWhen
+          />
+        </Button>
 
-        {/* Pause button */}
-        <button
+        <Button
+          variant={isPaused ? 'default' : 'secondary'}
+          size="sm"
           onClick={togglePause}
-          className={`pixel-button flex cursor-pointer items-center gap-2 px-4 py-2 text-base font-bold transition-all duration-200 ${
-            isPaused
-              ? 'neon-border-orange border-[#f97316] bg-[#f97316]/10 text-[#f97316]'
-              : 'border-[#7c3aed]/50 text-[#a78bfa] hover:border-[#7c3aed] hover:bg-[#7c3aed]/10'
-          }`}
+          className={cn(
+            'font-heading gap-1.5 text-xs',
+            isPaused && 'bg-neon-orange text-primary-foreground hover:bg-neon-orange/90'
+          )}
           aria-label={isPaused ? 'Resume game' : 'Pause game'}
         >
           {isPaused ? <Play size={14} /> : <Pause size={14} />}
-          <span>{isPaused ? 'PAUSED' : 'PAUSE'}</span>
-        </button>
+          {isPaused ? 'PAUSED' : 'PAUSE'}
+        </Button>
 
-        {/* Audio controls */}
-        <div className="pixel-panel flex items-center gap-2 border-[#2a2a50] bg-[#151532] px-2 py-1.5">
-          <button
+        <Card size="sm" className="flex flex-row items-center gap-2 py-2 pr-2 pl-2 shadow-xs">
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={toggleAudioMute}
-            className={`cursor-pointer transition-colors ${
-              isAudioMuted ? 'text-slate-500 hover:text-slate-300' : 'text-[#06b6d4] hover:text-[#67e8f9]'
-            }`}
+            className="text-muted-foreground shrink-0"
             aria-label={isAudioMuted ? 'Unmute audio' : 'Mute audio'}
             title={isAudioMuted ? 'Audio muted' : 'Audio enabled'}
           >
             {isAudioMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-          </button>
-          <div className="flex flex-col gap-1">
-            <label className="flex flex-1 items-center gap-1.5">
-              <span className="sr-only">SFX volume</span>
-              <span className="text-[10px] text-slate-500 uppercase" aria-hidden>
-                SFX
-              </span>
-              <input
-                type="range"
-                min={0}
+          </Button>
+          <Separator orientation="vertical" className="h-8" />
+          <div className="flex min-w-[7rem] flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground w-6 text-[9px] tracking-wide uppercase">SFX</span>
+              <Slider
+                value={[Math.round(sfxVolume * 100)]}
                 max={100}
                 step={1}
-                value={Math.round(sfxVolume * 100)}
-                onChange={(event) => setSfxVolume(Number(event.target.value) / 100)}
-                className="accent-neon-cyan h-1.5 w-20 cursor-pointer"
+                onValueChange={(v) => setSfxVolume(v[0]! / 100)}
+                className="flex-1"
                 aria-label="SFX volume"
               />
-            </label>
-            <label className="flex flex-1 items-center gap-1.5">
-              <span className="sr-only">Music volume</span>
-              <Music size={12} className="shrink-0 text-slate-500" aria-hidden />
-              <input
-                type="range"
-                min={0}
+            </div>
+            <div className="flex items-center gap-2">
+              <Music size={12} className="text-muted-foreground shrink-0" aria-hidden />
+              <Slider
+                value={[Math.round(musicVolume * 100)]}
                 max={100}
                 step={1}
-                value={Math.round(musicVolume * 100)}
-                onChange={(event) => setMusicVolume(Number(event.target.value) / 100)}
-                className="accent-neon-violet h-1.5 w-20 cursor-pointer"
+                onValueChange={(v) => setMusicVolume(v[0]! / 100)}
+                className="flex-1"
                 aria-label="Theme music volume"
-                title="Theme music (loop)"
               />
-            </label>
+            </div>
           </div>
-        </div>
+        </Card>
       </div>
     </header>
   );

@@ -1,7 +1,11 @@
 import { Users, Heart } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { useGameStore } from '../store/gameStore';
-import type { VisitorType } from '../types/game';
+import { useGameStore } from '@/store/gameStore';
+import type { VisitorType } from '@/types/game';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 const VISITOR_CONFIG: Record<VisitorType, { label: string; icon: string; color: string }> = {
   family: { label: 'Family', icon: '👨‍👩‍👧‍👦', color: '#06b6d4' },
@@ -36,18 +40,16 @@ export const VisitorPanel = () => {
   const happinessColor = avgHappiness >= 70 ? '#22c55e' : avgHappiness >= 40 ? '#eab308' : '#ef4444';
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Visitor count header */}
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users size={16} className="text-[#06b6d4]" />
-          <span className="text-sm font-bold tracking-wider text-slate-400 uppercase">Guests</span>
+          <Users size={16} className="text-neon-cyan" />
+          <span className="text-muted-foreground text-sm font-bold tracking-wider uppercase">Guests</span>
         </div>
-        <span className="font-display text-xl font-black text-[#06b6d4]">{totalVisitors}</span>
+        <span className="font-heading text-neon-cyan text-xl font-black">{totalVisitors}</span>
       </div>
 
-      {/* Visitor type breakdown */}
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         {(Object.keys(VISITOR_CONFIG) as VisitorType[]).map((type) => {
           const cfg = VISITOR_CONFIG[type];
           const count = typeCounts[type] ?? 0;
@@ -56,13 +58,13 @@ export const VisitorPanel = () => {
             <div key={type} className="flex items-center gap-2">
               <span className="w-6 text-base">{cfg.icon}</span>
               <div className="flex-1">
-                <div className="mb-0.5 flex justify-between text-xs">
-                  <span className="text-slate-400">{cfg.label}</span>
+                <div className="text-muted-foreground mb-0.5 flex justify-between text-xs">
+                  <span>{cfg.label}</span>
                   <span className="font-bold" style={{ color: cfg.color }}>
                     {count}
                   </span>
                 </div>
-                <div className="pixel-bar h-2 overflow-hidden">
+                <div className="pixel-bar bg-muted h-2 overflow-hidden rounded-sm">
                   <div
                     className="h-full transition-all duration-500"
                     style={{
@@ -78,21 +80,19 @@ export const VisitorPanel = () => {
         })}
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-[#2a2a50]" />
+      <Separator />
 
-      {/* Happiness */}
       <div>
         <div className="mb-1.5 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Heart size={14} style={{ color: happinessColor }} />
-            <span className="text-xs tracking-wider text-slate-400 uppercase">Happiness</span>
+            <span className="text-muted-foreground text-xs tracking-wider uppercase">Happiness</span>
           </div>
           <span className="text-base font-bold" style={{ color: happinessColor }}>
             {avgHappiness}%
           </span>
         </div>
-        <div className="pixel-bar h-3 overflow-hidden">
+        <div className="pixel-bar bg-muted h-3 overflow-hidden rounded-sm">
           <div
             className="h-full transition-all duration-500"
             style={{
@@ -102,7 +102,7 @@ export const VisitorPanel = () => {
             }}
           />
         </div>
-        <div className="mt-1 text-xs text-slate-500">
+        <p className="text-muted-foreground mt-1 text-xs">
           {avgHappiness >= 80
             ? 'Guests are ecstatic!'
             : avgHappiness >= 60
@@ -110,20 +110,22 @@ export const VisitorPanel = () => {
               : avgHappiness >= 40
                 ? 'Some guests are unhappy'
                 : 'Guests are leaving! Fix this!'}
-        </div>
+        </p>
       </div>
 
-      {/* Park cleanliness */}
-      <div>
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-xs tracking-wider text-slate-400 uppercase">Park Cleanliness</span>
+      <Card size="sm" className="gap-2 py-3 shadow-none">
+        <div className="mb-1.5 flex items-center justify-between px-1">
+          <span className="text-muted-foreground text-xs tracking-wider uppercase">Park Cleanliness</span>
           <span
-            className={`text-base font-bold ${parkDirt <= 30 ? 'text-green-400' : parkDirt <= 60 ? 'text-yellow-400' : 'text-red-400'}`}
+            className={cn(
+              'text-base font-bold',
+              parkDirt <= 30 ? 'text-green-400' : parkDirt <= 60 ? 'text-yellow-400' : 'text-red-400'
+            )}
           >
             {Math.round(100 - parkDirt)}%
           </span>
         </div>
-        <div className="pixel-bar h-3 overflow-hidden">
+        <div className="pixel-bar bg-muted h-3 overflow-hidden rounded-sm">
           <div
             className="h-full transition-all duration-500"
             style={{
@@ -132,22 +134,29 @@ export const VisitorPanel = () => {
             }}
           />
         </div>
-        {!isAutoCleanEnabled && (
-          <button
-            onClick={cleanPark}
-            className="pixel-button mt-2 w-full cursor-pointer bg-[#22c55e]/10 py-2 text-sm font-bold tracking-wider text-green-400 uppercase transition-colors duration-150 hover:bg-[#22c55e]/20"
-            aria-label="Clean the park"
-          >
-            🧹 Clean Park
-          </button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isAutoCleanEnabled || parkDirt <= 0}
+          onClick={cleanPark}
+          className="mt-2 w-full border-green-500/40 text-green-400 hover:bg-green-500/10 disabled:opacity-40"
+          aria-label={
+            isAutoCleanEnabled
+              ? 'Clean the park (auto-clean enabled)'
+              : parkDirt <= 0
+                ? 'Clean the park (park is already clean)'
+                : 'Clean the park'
+          }
+        >
+          🧹 Clean Park
+        </Button>
         {isAutoCleanEnabled && (
-          <div className="mt-1 flex items-center gap-1 text-xs text-green-400">
+          <div className="text-muted-foreground mt-1 flex items-center gap-1 text-xs text-green-400/90">
             <span>✓</span>
             <span>Janitor on duty — auto-cleaning</span>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 };

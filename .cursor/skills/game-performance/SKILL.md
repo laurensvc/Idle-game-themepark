@@ -1,6 +1,6 @@
 ---
 name: game-perf
-description: "Optimize game code for per-frame performance and GC pressure. Use PROACTIVELY when editing game loops, update functions, render code, or any code that runs every frame. Identifies allocation anti-patterns and provides zero-allocation alternatives."
+description: 'Optimize game code for per-frame performance and GC pressure. Use PROACTIVELY when editing game loops, update functions, render code, or any code that runs every frame. Identifies allocation anti-patterns and provides zero-allocation alternatives.'
 ---
 
 # Game Performance Optimization
@@ -10,6 +10,7 @@ This skill provides patterns for writing allocation-free, GC-friendly code in ga
 ## When to Activate
 
 Trigger this skill when editing:
+
 - Game loops, update functions, tick handlers
 - Render/draw functions
 - Physics update code
@@ -23,6 +24,7 @@ Trigger this skill when editing:
 ### 1. Spread Operator Copies
 
 **Problem:** Spread creates a new array every call.
+
 ```typescript
 // BAD: Creates new array every frame
 const context = {
@@ -32,6 +34,7 @@ const context = {
 ```
 
 **Fix:** Pass readonly references.
+
 ```typescript
 // GOOD: Zero allocation
 const context = {
@@ -43,12 +46,14 @@ const context = {
 ### 2. Array.filter() in Hot Paths
 
 **Problem:** `filter()` always creates a new array.
+
 ```typescript
 // BAD: New array every call
-const activeEnemies = enemies.filter(e => e.active);
+const activeEnemies = enemies.filter((e) => e.active);
 ```
 
 **Fix:** In-place filtering with swap-and-truncate.
+
 ```typescript
 // GOOD: Mutate in place
 function filterInPlace<T>(array: T[], predicate: (item: T) => boolean): void {
@@ -65,13 +70,15 @@ function filterInPlace<T>(array: T[], predicate: (item: T) => boolean): void {
 ### 3. Array.map() for Transformations
 
 **Problem:** `map()` creates a new array.
+
 ```typescript
 // BAD: New array every frame
-const positions = enemies.map(e => e.worldPos);
+const positions = enemies.map((e) => e.worldPos);
 steering.separation(ctx, positions, radius);
 ```
 
 **Fix:** Scratch array or inline iteration.
+
 ```typescript
 // GOOD: Reuse scratch array
 const positionsScratch: Vec2[] = [];
@@ -88,14 +95,14 @@ function getPositions(enemies: readonly EnemyState[]): readonly Vec2[] {
 ### 4. Filter + Map Chains
 
 **Problem:** Double allocation.
+
 ```typescript
 // BAD: Two new arrays
-const activePositions = enemies
-  .filter(e => e.active)
-  .map(e => e.worldPos);
+const activePositions = enemies.filter((e) => e.active).map((e) => e.worldPos);
 ```
 
 **Fix:** Single-pass with scratch array.
+
 ```typescript
 // GOOD: Single pass, zero allocation
 const scratch: Vec2[] = [];
@@ -111,6 +118,7 @@ function getActivePositions(enemies: readonly EnemyState[]): readonly Vec2[] {
 ### 5. Returning New Arrays from Utilities
 
 **Problem:** Helper functions that return new arrays per call.
+
 ```typescript
 // BAD: New array per entity per frame
 function getWrappedPositions(pos: Vec2): Vec2[] {
@@ -121,6 +129,7 @@ function getWrappedPositions(pos: Vec2): Vec2[] {
 ```
 
 **Fix:** Module-level scratch with readonly return.
+
 ```typescript
 // GOOD: Reusable scratch buffer
 const scratchPositions: Vec2[] = [];
@@ -138,16 +147,16 @@ The `readonly` return type signals to callers: "consume immediately, do not stor
 ### 6. O(n²) Proximity Queries
 
 **Problem:** Checking every entity against every other entity.
+
 ```typescript
 // BAD: O(n²) - checks all enemies for each enemy
 for (const enemy of enemies) {
-  const nearby = enemies.filter(e =>
-    e !== enemy && distance(e.pos, enemy.pos) < radius
-  );
+  const nearby = enemies.filter((e) => e !== enemy && distance(e.pos, enemy.pos) < radius);
 }
 ```
 
 **Fix:** Spatial hash grid for O(n) build + O(1) queries.
+
 ```typescript
 // GOOD: Build grid once, query many times
 const grid = new Map<string, Entity[]>();
@@ -184,6 +193,7 @@ function queryNearby(pos: Vec2, radius: number): readonly Entity[] {
 ### 7. Object Creation in Loops
 
 **Problem:** Creating temporary objects inside loops.
+
 ```typescript
 // BAD: New object per iteration
 for (const enemy of enemies) {
@@ -193,6 +203,7 @@ for (const enemy of enemies) {
 ```
 
 **Fix:** Reuse a single context object.
+
 ```typescript
 // GOOD: Reuse context object
 const ctx = { position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
@@ -209,6 +220,7 @@ for (const enemy of enemies) {
 ## Architecture Patterns
 
 ### Build Once, Query Many
+
 ```typescript
 // Per-frame setup phase
 buildSpatialGrid(entities);
@@ -222,14 +234,18 @@ for (const entity of entities) {
 ```
 
 ### Readonly Signals Transience
+
 When a function returns a `readonly` array, it communicates:
+
 - The array is a scratch buffer
 - Caller must consume immediately
 - Do not store the reference
 - Contents will change on next call
 
 ### Object Pooling for Frequent Create/Destroy
+
 For entities created/destroyed frequently (particles, projectiles):
+
 ```typescript
 class Pool<T> {
   private available: T[] = [];

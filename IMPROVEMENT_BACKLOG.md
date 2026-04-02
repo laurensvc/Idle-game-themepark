@@ -14,52 +14,52 @@ This backlog captures potential improvements for the game and ranks them by impl
 ## S - Easy
 
 - [ ] **Visual polish pass**  
-      Improve status colors, ride state readability, and empty-state presentation.
+       Improve status colors, ride state readability, and empty-state presentation.
 - [ ] **Audio v1 foundation**  
-      Add UI click sounds and basic ride hum/alert SFX with mute and volume controls.
+       Add UI click sounds and basic ride hum/alert SFX with mute and volume controls.
 - [ ] **Quality-of-life controls**  
-      Add bulk actions like "repair all broken" and "clean dirtiest ride", plus richer tooltips.
+       Add bulk actions like "repair all broken" and "clean dirtiest ride", plus richer tooltips.
 - [ ] **Stats clarity**  
-      Show per-ride ROI, payback time, and trend arrows in stats/shop views.
+       Show per-ride ROI, payback time, and trend arrows in stats/shop views.
 - [ ] **Notification improvements**  
-      Reduce toast spam with dedupe and grouped summary notifications.
+       Reduce toast spam with dedupe and grouped summary notifications.
 
 ## M - Moderate
 
 - [ ] **Gameplay expansion set A**  
-      Add ride archetypes (low-maintenance/high-capacity, high-risk/high-profit) and matching upgrades.
+       Add ride archetypes (low-maintenance/high-capacity, high-risk/high-profit) and matching upgrades.
 - [ ] **Visitor behavior depth**  
-      Add visitor preferences and targets so ride choice matters more than random occupancy.
+       Add visitor preferences and targets so ride choice matters more than random occupancy.
 - [ ] **Midgame objectives**  
-      Add milestone goals (earnings, happiness streaks, uptime targets) with one-time rewards.
+       Add milestone goals (earnings, happiness streaks, uptime targets) with one-time rewards.
 - [ ] **Event system v1**  
-      Add periodic events (rainy day, school holiday, inspection) that temporarily alter demand/cost/risk.
+       Add periodic events (rainy day, school holiday, inspection) that temporarily alter demand/cost/risk.
 - [ ] **Balancing sweep**  
-      Rebalance unlock costs, breakdown curves, and level formulas for smoother progression.
+       Rebalance unlock costs, breakdown curves, and level formulas for smoother progression.
 
 ## L - Hard
 
 - [ ] **Endgame gameplay loop v1**  
-      Add prestige/rebirth with permanent bonuses and reset economy.
+       Add prestige/rebirth with permanent bonuses and reset economy.
 - [ ] **Park layout gameplay**  
-      Introduce ride placement on a grid with adjacency/zone bonuses and pathing-like constraints.
+       Introduce ride placement on a grid with adjacency/zone bonuses and pathing-like constraints.
 - [ ] **Staff system**  
-      Add janitors, mechanics, and managers with wages and specialization.
+       Add janitors, mechanics, and managers with wages and specialization.
 - [ ] **Economy depth**  
-      Add ticket pricing, operating costs, and demand elasticity (profit versus happiness trade-offs).
+       Add ticket pricing, operating costs, and demand elasticity (profit versus happiness trade-offs).
 - [ ] **Seasonal progression**  
-      Add day/season cycles that impact ride popularity and maintenance pressure.
+       Add day/season cycles that impact ride popularity and maintenance pressure.
 
 ## XL - Very Hard
 
 - [ ] **Endgame gameplay loop v2 (meta progression)**  
-      Add multi-park expansion, research trees, and long-horizon objectives.
+       Add multi-park expansion, research trees, and long-horizon objectives.
 - [ ] **Narrative scenarios/challenges**  
-      Add challenge runs with unique modifiers and win conditions.
+       Add challenge runs with unique modifiers and win conditions.
 - [ ] **Advanced audio design**  
-      Add adaptive music layers and contextual SFX mixing tied to park state.
+       Add adaptive music layers and contextual SFX mixing tied to park state.
 - [ ] **Save/versioning framework**  
-      Add persistent save migration strategy for large future systems.
+       Add persistent save migration strategy for large future systems.
 
 ## Priority Execution Order
 
