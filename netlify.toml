@@ -1,0 +1,16 @@
+# Netlify — static client (Vite) deployment
+# https://docs.netlify.com/configure-builds/overview/
+
+[build]
+  command = "pnpm run build"
+  publish = "dist"
+
+# SPA: serve index.html for all routes (safe for Vite client-only apps)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  # Match local tooling; Netlify also respects package.json "packageManager"
+  NODE_VERSION = "22"
