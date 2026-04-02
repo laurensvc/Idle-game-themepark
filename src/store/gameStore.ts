@@ -13,6 +13,7 @@ interface StoredAudioSettings {
   isMuted: boolean;
   masterVolume: number;
   sfxVolume: number;
+  musicVolume: number;
 }
 
 function generateId(): string {
@@ -58,6 +59,7 @@ const getStoredAudioSettings = (): StoredAudioSettings => {
     isMuted: true,
     masterVolume: 0.8,
     sfxVolume: 0.8,
+    musicVolume: 0.75,
   };
 
   if (typeof window === 'undefined') return defaults;
@@ -71,6 +73,7 @@ const getStoredAudioSettings = (): StoredAudioSettings => {
       isMuted: typeof parsed.isMuted === 'boolean' ? parsed.isMuted : defaults.isMuted,
       masterVolume: clamp01(typeof parsed.masterVolume === 'number' ? parsed.masterVolume : defaults.masterVolume),
       sfxVolume: clamp01(typeof parsed.sfxVolume === 'number' ? parsed.sfxVolume : defaults.sfxVolume),
+      musicVolume: clamp01(typeof parsed.musicVolume === 'number' ? parsed.musicVolume : defaults.musicVolume),
     };
   } catch {
     return defaults;
@@ -101,6 +104,7 @@ interface GameActions {
   toggleAudioMute: () => void;
   setMasterVolume: (volume: number) => void;
   setSfxVolume: (volume: number) => void;
+  setMusicVolume: (volume: number) => void;
   dismissNotification: (id: string) => void;
 }
 
@@ -117,6 +121,7 @@ const initialState: GameState = {
   isAudioMuted: initialAudioSettings.isMuted,
   masterVolume: initialAudioSettings.masterVolume,
   sfxVolume: initialAudioSettings.sfxVolume,
+  musicVolume: initialAudioSettings.musicVolume,
   stats: {
     totalEarnings: 0,
     totalVisitors: 0,
@@ -460,6 +465,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       isMuted: nextMuted,
       masterVolume: state.masterVolume,
       sfxVolume: state.sfxVolume,
+      musicVolume: state.musicVolume,
     };
     persistAudioSettings(nextSettings);
     set({ isAudioMuted: nextMuted });
@@ -472,6 +478,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       isMuted: state.isAudioMuted,
       masterVolume: clamp01(volume),
       sfxVolume: state.sfxVolume,
+      musicVolume: state.musicVolume,
     };
     persistAudioSettings(nextSettings);
     set({ masterVolume: nextSettings.masterVolume });
@@ -483,9 +490,22 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       isMuted: state.isAudioMuted,
       masterVolume: state.masterVolume,
       sfxVolume: clamp01(volume),
+      musicVolume: state.musicVolume,
     };
     persistAudioSettings(nextSettings);
     set({ sfxVolume: nextSettings.sfxVolume });
+  },
+
+  setMusicVolume: (volume: number) => {
+    const state = get();
+    const nextSettings = {
+      isMuted: state.isAudioMuted,
+      masterVolume: state.masterVolume,
+      sfxVolume: state.sfxVolume,
+      musicVolume: clamp01(volume),
+    };
+    persistAudioSettings(nextSettings);
+    set({ musicVolume: nextSettings.musicVolume });
   },
 
   dismissNotification: (id: string) => {
@@ -502,6 +522,7 @@ export const resetGameStore = (): void => {
     isAudioMuted: current.isAudioMuted,
     masterVolume: current.masterVolume,
     sfxVolume: current.sfxVolume,
+    musicVolume: current.musicVolume,
     rides: [createInitialRide('ferris_wheel')],
   });
 };

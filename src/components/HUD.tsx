@@ -1,7 +1,8 @@
 import { memo, useMemo } from 'react';
-import { Pause, Play, DollarSign, Users, Heart, Clock, TrendingUp, Coins, Volume2, VolumeX } from 'lucide-react';
+import { Pause, Play, DollarSign, Users, Heart, Clock, TrendingUp, Coins, Volume2, VolumeX, Music } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../store/gameStore';
+import CountUp from './CountUp';
 
 const formatMoney = (amount: number): string => {
   if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
@@ -9,11 +10,24 @@ const formatMoney = (amount: number): string => {
   return `$${Math.floor(amount)}`;
 };
 
+const formatMoneyCount = (n: number) => formatMoney(n);
+
+const formatHappinessCount = (n: number) => `${Math.round(n)}%`;
+
+const HUD_COUNT_DURATION = 0.85;
+
 const formatTime = (seconds: number): string => {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
 };
+
+interface StatPillCountUp {
+  to: number;
+  formatDisplay?: (n: number) => string;
+  separator?: string;
+  duration?: number;
+}
 
 interface StatPillProps {
   icon: React.ReactNode;
@@ -22,19 +36,31 @@ interface StatPillProps {
   color: string;
   glowClass: string;
   animate?: boolean;
+  countUp?: StatPillCountUp;
 }
 
-const StatPill = memo(({ icon, label, value, color, glowClass, animate = true }: StatPillProps) => (
+const StatPill = memo(({ icon, label, value, color, glowClass, animate = true, countUp }: StatPillProps) => (
   <div className={`pixel-panel flex items-center gap-2.5 px-3.5 py-2 ${color} ${glowClass} bg-[#1a1a35]`}>
     <span className="opacity-80">{icon}</span>
     <div className="flex flex-col leading-none">
       <span className="text-xs font-medium tracking-widest uppercase opacity-50">{label}</span>
-      <span
-        key={animate ? value : undefined}
-        className={`font-display inline-block origin-left text-base font-bold ${animate ? 'animate-juicy-pop' : ''}`}
-      >
-        {value}
-      </span>
+      {countUp ? (
+        <CountUp
+          to={countUp.to}
+          formatDisplay={countUp.formatDisplay}
+          separator={countUp.separator ?? ''}
+          duration={countUp.duration ?? HUD_COUNT_DURATION}
+          className="font-display inline-block origin-left text-base font-bold tabular-nums"
+          startWhen
+        />
+      ) : (
+        <span
+          key={animate ? value : undefined}
+          className={`font-display inline-block origin-left text-base font-bold ${animate ? 'animate-juicy-pop' : ''}`}
+        >
+          {value}
+        </span>
+      )}
     </div>
   </div>
 ));
@@ -62,8 +88,10 @@ export const HUD = () => {
     collectAllCash,
     isAudioMuted,
     sfxVolume,
+    musicVolume,
     toggleAudioMute,
     setSfxVolume,
+    setMusicVolume,
   } = useGameStore(
     useShallow((s) => ({
       money: s.money,
@@ -78,8 +106,10 @@ export const HUD = () => {
       collectAllCash: s.collectAllCash,
       isAudioMuted: s.isAudioMuted,
       sfxVolume: s.sfxVolume,
+      musicVolume: s.musicVolume,
       toggleAudioMute: s.toggleAudioMute,
       setSfxVolume: s.setSfxVolume,
+      setMusicVolume: s.setMusicVolume,
     }))
   );
 
@@ -113,6 +143,7 @@ export const HUD = () => {
           value={formatMoney(money)}
           color="border-[#f97316]/30"
           glowClass="neon-border-orange"
+          countUp={{ to: money, formatDisplay: formatMoneyCount }}
         />
         <StatPill
           icon={statIcons.guests}
@@ -120,6 +151,7 @@ export const HUD = () => {
           value={totalVisitors.toString()}
           color="border-[#06b6d4]/30"
           glowClass=""
+          countUp={{ to: totalVisitors, separator: ',' }}
         />
         <StatPill
           icon={happyIcon}
@@ -127,6 +159,7 @@ export const HUD = () => {
           value={`${Math.round(parkHappiness)}%`}
           color={parkHappiness >= 70 ? 'border-green-500/30' : 'border-yellow-500/30'}
           glowClass=""
+          countUp={{ to: parkHappiness, formatDisplay: formatHappinessCount }}
         />
         <StatPill
           icon={dirtIcon}
@@ -141,6 +174,7 @@ export const HUD = () => {
           value={formatMoney(stats.totalEarnings)}
           color="border-[#7c3aed]/30"
           glowClass=""
+          countUp={{ to: stats.totalEarnings, formatDisplay: formatMoneyCount }}
         />
         <StatPill
           icon={statIcons.time}
@@ -162,7 +196,13 @@ export const HUD = () => {
             aria-label={`Collect all cash: ${formatMoney(totalPendingCash)}`}
           >
             <Coins size={14} />
-            <span>{formatMoney(totalPendingCash)}</span>
+            <CountUp
+              to={totalPendingCash}
+              formatDisplay={formatMoneyCount}
+              duration={0.65}
+              className="font-bold tabular-nums"
+              startWhen
+            />
           </button>
         )}
 
@@ -192,16 +232,39 @@ export const HUD = () => {
           >
             {isAudioMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
           </button>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={Math.round(sfxVolume * 100)}
-            onChange={(event) => setSfxVolume(Number(event.target.value) / 100)}
-            className="accent-[#06b6d4] h-1.5 w-20 cursor-pointer"
-            aria-label="SFX volume"
-          />
+          <div className="flex flex-col gap-1">
+            <label className="flex flex-1 items-center gap-1.5">
+              <span className="sr-only">SFX volume</span>
+              <span className="text-[10px] text-slate-500 uppercase" aria-hidden>
+                SFX
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.round(sfxVolume * 100)}
+                onChange={(event) => setSfxVolume(Number(event.target.value) / 100)}
+                className="accent-neon-cyan h-1.5 w-20 cursor-pointer"
+                aria-label="SFX volume"
+              />
+            </label>
+            <label className="flex flex-1 items-center gap-1.5">
+              <span className="sr-only">Music volume</span>
+              <Music size={12} className="shrink-0 text-slate-500" aria-hidden />
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.round(musicVolume * 100)}
+                onChange={(event) => setMusicVolume(Number(event.target.value) / 100)}
+                className="accent-neon-violet h-1.5 w-20 cursor-pointer"
+                aria-label="Theme music volume"
+                title="Theme music (loop)"
+              />
+            </label>
+          </div>
         </div>
       </div>
     </header>

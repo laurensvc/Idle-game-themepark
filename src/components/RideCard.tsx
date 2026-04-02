@@ -5,6 +5,7 @@ import { getRideDefinition } from '../data/rides';
 import { purchasedUpgradesIncludeAutoRepairForRide } from '../data/upgrades';
 import type { Ride } from '../types/game';
 import { playGameSfx } from '../audio/soundManager';
+import CountUp from './CountUp';
 
 interface RideCardProps {
   ride: Ride;
@@ -14,6 +15,8 @@ const formatMoney = (amount: number): string => {
   if (amount >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;
   return `$${amount}`;
 };
+
+const formatMoneyCount = (n: number) => formatMoney(n);
 
 const STATUS_CONFIG = {
   operating: {
@@ -217,7 +220,13 @@ export const RideCard = ({ ride }: RideCardProps) => {
           aria-label={`Collect ${formatMoney(ride.pendingCash)}`}
         >
           <DollarSign size={12} />
-          {formatMoney(ride.pendingCash)}
+          <CountUp
+            to={ride.pendingCash}
+            formatDisplay={formatMoneyCount}
+            duration={0.65}
+            className="tabular-nums"
+            startWhen
+          />
         </button>
       )}
 

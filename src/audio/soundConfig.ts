@@ -12,7 +12,7 @@ export type SoundId =
 export const SOUND_FILE_PATHS: Record<SoundId, string> = {
   ui_click: '/audio/sfx/ui-click.wav',
   ui_toggle: '/audio/sfx/ui-toggle.wav',
-  cash_collect: '/audio/sfx/cash-collect.wav',
+  cash_collect: '/audio/sfx/cash-collect.ogg',
   purchase: '/audio/sfx/purchase-confirm.wav',
   upgrade: '/audio/sfx/upgrade-unlock.wav',
   breakdown: '/audio/sfx/ride-breakdown-alert.wav',
@@ -32,3 +32,12 @@ export const SOUND_BASE_VOLUME: Record<SoundId, number> = {
   repair_done: 0.7,
   warning: 0.55,
 };
+
+/** Looping background theme: path under `public/audio/`. */
+export const THEME_MUSIC_PATH = '/audio/music/theme-music.ogg';
+
+/**
+ * Intrinsic gain for theme music (before master × music sliders).
+ * Keep low so SFX stay readable when both sliders are up.
+ */
+export const THEME_MUSIC_BASE_VOLUME = 0.18;

@@ -1,19 +1,15 @@
-# Audio Asset Guide
+# Audio assets
 
-Drop your audio files in this folder structure:
+## Theme music (looping)
 
-- `public/audio/sfx/ui-toggle.wav`
-- `public/audio/sfx/cash-collect.wav`
-- `public/audio/sfx/purchase-confirm.wav`
-- `public/audio/sfx/upgrade-unlock.wav`
-- `public/audio/sfx/ride-breakdown-alert.wav`
-- `public/audio/sfx/repair-start.wav`
-- `public/audio/sfx/repair-complete.wav`
-- `public/audio/sfx/warning-soft.wav`
+Place your main theme here:
 
-## Notes
+- `public/audio/music/theme-music.ogg`
 
-- Recommended format: `.wav` or high-quality `.ogg`.
-- Keep clips short (`< 1.2s`) for UI responsiveness.
-- Normalize loudness to avoid harsh jumps between sounds.
-- Audio is muted by default until enabled in the HUD speaker control.
+The game loads it with `loop` enabled. Intrinsic gain is kept low in code (`THEME_MUSIC_BASE_VOLUME` in `src/audio/soundConfig.ts`); use the **Music** slider in the HUD on top of that.
+
+You can use `.mp3` instead: update `THEME_MUSIC_PATH` in `src/audio/soundConfig.ts` to match your filename.
+
+## SFX
+
+See filenames listed in `src/audio/soundConfig.ts` under `SOUND_FILE_PATHS`.

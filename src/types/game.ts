@@ -89,6 +89,7 @@ export interface GameState {
   isAudioMuted: boolean;
   masterVolume: number; // 0-1
   sfxVolume: number; // 0-1
+  musicVolume: number; // 0-1 (theme loop gain before intrinsic THEME_MUSIC_BASE_VOLUME)
   stats: GameStats;
   gameTick: number;
   isPaused: boolean;

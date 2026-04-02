@@ -1,20 +1,29 @@
-import { SOUND_BASE_VOLUME, SOUND_FILE_PATHS, type SoundId } from './soundConfig';
+import {
+  SOUND_BASE_VOLUME,
+  SOUND_FILE_PATHS,
+  THEME_MUSIC_BASE_VOLUME,
+  THEME_MUSIC_PATH,
+  type SoundId,
+} from './soundConfig';
 
 interface AudioRuntimeSettings {
   isMuted: boolean;
   masterVolume: number;
   sfxVolume: number;
+  musicVolume: number;
 }
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 
 class SoundManager {
   private players = new Map<SoundId, HTMLAudioElement>();
+  private themeMusic: HTMLAudioElement | null = null;
   private settings: AudioRuntimeSettings = {
     // Start muted so missing files never spam requests on first run.
     isMuted: true,
     masterVolume: 0.8,
     sfxVolume: 0.8,
+    musicVolume: 0.75,
   };
 
   setSettings(next: AudioRuntimeSettings): void {
@@ -22,13 +31,16 @@ class SoundManager {
       isMuted: next.isMuted,
       masterVolume: clamp01(next.masterVolume),
       sfxVolume: clamp01(next.sfxVolume),
+      musicVolume: clamp01(next.musicVolume),
     };
+    this.syncThemeMusic();
   }
 
   preload(): void {
     for (const id of Object.keys(SOUND_FILE_PATHS) as SoundId[]) {
       this.getOrCreatePlayer(id);
     }
+    this.getThemeMusic();
   }
 
   play(id: SoundId): void {
@@ -51,6 +63,31 @@ class SoundManager {
     player.preload = 'auto';
     this.players.set(id, player);
     return player;
+  }
+
+  private getThemeMusic(): HTMLAudioElement {
+    if (!this.themeMusic) {
+      const el = new Audio(THEME_MUSIC_PATH);
+      el.loop = true;
+      el.preload = 'auto';
+      this.themeMusic = el;
+    }
+    return this.themeMusic;
+  }
+
+  private syncThemeMusic(): void {
+    const el = this.getThemeMusic();
+    const volume = this.settings.isMuted
+      ? 0
+      : clamp01(
+          this.settings.masterVolume * this.settings.musicVolume * THEME_MUSIC_BASE_VOLUME
+        );
+    el.volume = volume;
+    if (this.settings.isMuted || volume <= 0) {
+      el.pause();
+      return;
+    }
+    void el.play().catch(() => undefined);
   }
 }
 

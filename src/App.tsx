@@ -10,6 +10,7 @@ const App = () => {
   const isAudioMuted = useGameStore((s) => s.isAudioMuted);
   const masterVolume = useGameStore((s) => s.masterVolume);
   const sfxVolume = useGameStore((s) => s.sfxVolume);
+  const musicVolume = useGameStore((s) => s.musicVolume);
 
   useEffect(() => {
     startGameLoop();
@@ -22,8 +23,9 @@ const App = () => {
       isMuted: isAudioMuted,
       masterVolume,
       sfxVolume,
+      musicVolume,
     });
-  }, [isAudioMuted, masterVolume, sfxVolume]);
+  }, [isAudioMuted, masterVolume, sfxVolume, musicVolume]);
 
   return (
     <div className="crt-overlay flex h-screen flex-col overflow-hidden bg-[#0a0a1a] text-white">
