@@ -55,8 +55,7 @@ const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 
 const getStoredAudioSettings = (): StoredAudioSettings => {
   const defaults: StoredAudioSettings = {
-    // Start muted until the user adds files and enables sound.
-    isMuted: true,
+    isMuted: false,
     masterVolume: 0.8,
     sfxVolume: 0.8,
     musicVolume: 0.75,

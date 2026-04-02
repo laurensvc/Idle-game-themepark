@@ -36,6 +36,11 @@ class SoundManager {
     this.syncThemeMusic();
   }
 
+  /** Call after a user gesture if autoplay blocked the theme loop on load. */
+  retryThemeMusicPlayback(): void {
+    this.syncThemeMusic();
+  }
+
   preload(): void {
     for (const id of Object.keys(SOUND_FILE_PATHS) as SoundId[]) {
       this.getOrCreatePlayer(id);
@@ -70,6 +75,7 @@ class SoundManager {
       const el = new Audio(THEME_MUSIC_PATH);
       el.loop = true;
       el.preload = 'auto';
+
       this.themeMusic = el;
     }
     return this.themeMusic;
@@ -79,9 +85,7 @@ class SoundManager {
     const el = this.getThemeMusic();
     const volume = this.settings.isMuted
       ? 0
-      : clamp01(
-          this.settings.masterVolume * this.settings.musicVolume * THEME_MUSIC_BASE_VOLUME
-        );
+      : clamp01(this.settings.masterVolume * this.settings.musicVolume * THEME_MUSIC_BASE_VOLUME);
     el.volume = volume;
     if (this.settings.isMuted || volume <= 0) {
       el.pause();
@@ -99,6 +103,10 @@ export const configureSoundSettings = (settings: AudioRuntimeSettings): void => 
 
 export const preloadGameSounds = (): void => {
   soundManager.preload();
+};
+
+export const retryThemeMusicAfterUserGesture = (): void => {
+  soundManager.retryThemeMusicPlayback();
 };
 
 export const playGameSfx = (id: SoundId): void => {
