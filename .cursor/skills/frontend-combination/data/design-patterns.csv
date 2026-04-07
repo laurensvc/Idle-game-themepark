@@ -1,0 +1,74 @@
+Category,Pattern,Type,Description,Source,Severity
+Typography,Use modular type scale with fluid sizing,Do,"Use clamp() for headings, fewer sizes with more contrast (5-size system)",frontend-design,HIGH
+Typography,Avoid overused fonts,Don't,"Never use Inter, Roboto, Arial, Open Sans, system defaults for distinctive design",frontend-design,HIGH
+Typography,No monospace as lazy shorthand,Don't,Don't use monospace typography as lazy shorthand for technical/developer vibes,frontend-design,MEDIUM
+Typography,No large rounded-corner icons above headings,Don't,Large icons with rounded corners above headings rarely add value and look templated,frontend-design,MEDIUM
+Typography,Use rem for font sizes,Do,Use rem/em not px for body text to respect user browser settings,typography-ref,HIGH
+Typography,Minimum 16px body text,Do,Smaller than 16px strains eyes and fails WCAG on mobile,typography-ref,HIGH
+Typography,Use tabular-nums for number columns,Do,font-variant-numeric: tabular-nums for data tables and number alignment,web-guidelines,MEDIUM
+Typography,Use text-wrap balance on headings,Do,Use text-wrap: balance or text-pretty on headings to prevent widows,web-guidelines,MEDIUM
+Color,Use modern CSS color functions,Do,"Use oklch, color-mix, light-dark for perceptually uniform palettes",frontend-design,HIGH
+Color,Tint neutrals toward brand hue,Do,Even subtle tinting creates subconscious cohesion,frontend-design,MEDIUM
+Color,No gray text on colored backgrounds,Don't,Gray looks washed out on color; use a shade of the background color instead,frontend-design,HIGH
+Color,No pure black or white,Don't,Never use #000 or #fff; always tint slightly as pure values don't appear in nature,frontend-design,MEDIUM
+Color,No AI color palette,Don't,"Avoid cyan-on-dark, purple-to-blue gradients, neon accents on dark backgrounds",frontend-design,CRITICAL
+Color,No gradient text for impact,Don't,Gradient text on metrics/headings is decorative rather than meaningful,frontend-design,MEDIUM
+Color,No dark mode as default shortcut,Don't,Don't default to dark mode with glowing accents to avoid actual design decisions,frontend-design,HIGH
+Color,60-30-10 rule for visual weight,Do,"60% neutrals, 30% secondary, 10% accent. Accent works because it's rare",color-ref,MEDIUM
+Color,WCAG contrast minimums,Do,"4.5:1 for body text, 3:1 for large text and UI components",color-ref,CRITICAL
+Color,Dark mode is not inverted light mode,Do,"Different decisions needed: lighter surfaces for depth, desaturate accents, reduce font weight",color-ref,HIGH
+Layout,Create visual rhythm through varied spacing,Do,"Tight groupings, generous separations - not same padding everywhere",frontend-design,HIGH
+Layout,Use asymmetry and unexpected compositions,Do,Break the grid intentionally for emphasis,frontend-design,MEDIUM
+Layout,No wrapping everything in cards,Don't,Not everything needs a container; spacing creates grouping naturally,frontend-design,HIGH
+Layout,No nested cards,Don't,Cards inside cards create visual noise; flatten the hierarchy,frontend-design,HIGH
+Layout,No identical card grids,Don't,Same-sized cards with icon + heading + text repeated endlessly is monotonous,frontend-design,HIGH
+Layout,No hero metric layout template,Don't,"Big number, small label, supporting stats, gradient accent is generic AI pattern",frontend-design,HIGH
+Layout,No centering everything,Don't,Left-aligned text with asymmetric layouts feels more designed,frontend-design,MEDIUM
+Layout,Use 4pt base spacing,Do,"4pt system for granularity: 4, 8, 12, 16, 24, 32, 48, 64, 96px",spatial-ref,MEDIUM
+Layout,Container queries for components,Do,Use @container for component-level responsiveness instead of viewport queries,frontend-design,HIGH
+Layout,Touch targets 44x44px minimum,Do,Interactive elements must meet minimum touch target size,web-guidelines,CRITICAL
+Visual,No glassmorphism everywhere,Don't,Blur effects and glass cards used decoratively rather than purposefully is AI slop,frontend-design,HIGH
+Visual,No rounded elements with thick colored border,Don't,Colored border on one side is a lazy accent that rarely looks intentional,frontend-design,MEDIUM
+Visual,No sparklines as decoration,Don't,Tiny charts that look sophisticated but convey nothing meaningful,frontend-design,MEDIUM
+Visual,No rounded rectangles with generic drop shadows,Don't,"Safe, forgettable, could be any AI output",frontend-design,HIGH
+Visual,No modals unless necessary,Don't,Modals are lazy; consider alternatives first,frontend-design,MEDIUM
+Visual,Use intentional decorative elements,Do,Decorative elements should reinforce brand not just add visual noise,frontend-design,MEDIUM
+Motion,Use exponential easing,Do,"ease-out-quart/quint/expo for natural deceleration, not CSS defaults",frontend-design,HIGH
+Motion,No bounce or elastic easing,Don't,They feel dated and tacky; real objects decelerate smoothly,frontend-design,HIGH
+Motion,Animate transform and opacity only,Do,Everything else causes layout recalculation,frontend-design,CRITICAL
+Motion,No animating layout properties,Don't,"Never animate width, height, padding, margin directly",frontend-design,CRITICAL
+Motion,Grid-template-rows for height animations,Do,Use grid-template-rows: 0fr to 1fr instead of animating height,frontend-design,MEDIUM
+Motion,Respect prefers-reduced-motion,Do,Always provide non-animated alternatives,frontend-design,CRITICAL
+Motion,100-150ms for instant feedback,Do,"Button press, toggle, color change",motion-ref,MEDIUM
+Motion,200-300ms for state changes,Do,"Menu open, tooltip, hover states",motion-ref,MEDIUM
+Motion,Exit animations faster than entrances,Do,Use ~75% of enter duration for exits,motion-ref,LOW
+Interaction,Progressive disclosure,Do,"Start simple, reveal sophistication through interaction",frontend-design,HIGH
+Interaction,Design empty states that teach,Do,Empty states should teach the interface not just say nothing here,frontend-design,HIGH
+Interaction,No redundant information,Don't,"Don't repeat same info; redundant headers, intros restating heading",frontend-design,MEDIUM
+Interaction,Not every button primary,Don't,"Use ghost buttons, text links, secondary styles; hierarchy matters",frontend-design,HIGH
+Interaction,Never outline:none without replacement,Do,Removing focus indicators is an accessibility violation,interaction-ref,CRITICAL
+Interaction,Use focus-visible not focus,Do,Show focus ring only for keyboard users not mouse/touch,interaction-ref,HIGH
+Interaction,Placeholders are not labels,Do,Always use visible label elements; placeholders disappear on input,interaction-ref,HIGH
+Interaction,Undo over confirmation dialogs,Do,Users click through confirmations mindlessly; undo is better UX,interaction-ref,HIGH
+Responsive,Mobile-first CSS,Do,"Start with base styles for mobile, use min-width queries to layer complexity",responsive-ref,HIGH
+Responsive,Content-driven breakpoints,Do,Let content tell you where to break not device sizes,responsive-ref,MEDIUM
+Responsive,Detect input method not just screen size,Do,Use @media (pointer: fine/coarse) and (hover: hover/none) queries,responsive-ref,HIGH
+Responsive,Handle safe areas for notches,Do,Use env(safe-area-inset-*) for modern phone notches and home indicators,responsive-ref,MEDIUM
+Responsive,Don't hide core functionality on mobile,Don't,Adapt the interface don't amputate it,frontend-design,HIGH
+Writing,Specific button labels,Do,"Save changes not OK, Create account not Submit",ux-writing-ref,HIGH
+Writing,Error messages with fix instructions,Do,What happened + why + how to fix it in every error message,ux-writing-ref,HIGH
+Writing,Empty states as opportunities,Do,"Acknowledge briefly, explain value, provide clear action",ux-writing-ref,MEDIUM
+Writing,Never blame the user,Don't,Reframe: Please enter MM/DD/YYYY format not You entered an invalid date,ux-writing-ref,HIGH
+Writing,Consistent terminology,Do,Pick one term and stick with it: Delete not Delete/Remove/Trash,ux-writing-ref,MEDIUM
+Accessibility,Icon-only buttons need aria-label,Do,Screen readers need text alternatives for icon buttons,web-guidelines,CRITICAL
+Accessibility,Form controls need label or aria-label,Do,Every form input must have an associated label,web-guidelines,CRITICAL
+Accessibility,Semantic HTML before ARIA,Do,"Use button, a, label, table before adding ARIA roles",web-guidelines,HIGH
+Accessibility,Never disable zoom,Don't,user-scalable=no or maximum-scale=1 breaks accessibility,web-guidelines,CRITICAL
+Accessibility,Never block paste,Don't,onPaste with preventDefault is a hostile anti-pattern,web-guidelines,HIGH
+Accessibility,Images need width and height,Do,Explicit dimensions prevent CLS (Cumulative Layout Shift),web-guidelines,HIGH
+Accessibility,Destructive actions need confirmation or undo,Do,Never immediately execute destructive actions,web-guidelines,HIGH
+Performance,Virtualize large lists,Do,"Lists >50 items should use virtualization (virtua, content-visibility: auto)",web-guidelines,HIGH
+Performance,No layout reads in render,Don't,"Avoid getBoundingClientRect, offsetHeight in render cycle",web-guidelines,HIGH
+Performance,Preconnect for CDN domains,Do,Add link rel=preconnect for CDN and asset domains,web-guidelines,MEDIUM
+Performance,Critical fonts preloaded,Do,link rel=preload as=font with font-display: swap,web-guidelines,MEDIUM
+Performance,Never transition: all,Don't,List CSS transition properties explicitly,web-guidelines,HIGH
