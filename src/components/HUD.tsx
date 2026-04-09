@@ -1,12 +1,12 @@
-import { memo, useMemo } from 'react';
-import { Pause, Play, DollarSign, Users, Heart, Clock, TrendingUp, Coins, Volume2, VolumeX, Music } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
-import { useGameStore } from '@/store/gameStore';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
+import { cn } from '@/lib/utils';
+import { useGameStore } from '@/store/gameStore';
+import { Clock, DollarSign, Heart, Music, Pause, Play, TrendingUp, Users, Volume2, VolumeX } from 'lucide-react';
+import { memo, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import CountUp from './CountUp';
 
 const formatMoney = (amount: number): string => {
@@ -94,8 +94,6 @@ export const HUD = () => {
     isPaused,
     togglePause,
     gameTick,
-    rides,
-    collectAllCash,
     isAudioMuted,
     sfxVolume,
     musicVolume,
@@ -112,8 +110,6 @@ export const HUD = () => {
       isPaused: s.isPaused,
       togglePause: s.togglePause,
       gameTick: s.gameTick,
-      rides: s.rides,
-      collectAllCash: s.collectAllCash,
       isAudioMuted: s.isAudioMuted,
       sfxVolume: s.sfxVolume,
       musicVolume: s.musicVolume,
@@ -124,7 +120,6 @@ export const HUD = () => {
   );
 
   const totalVisitors = visitors.reduce((sum, v) => sum + v.size, 0);
-  const totalPendingCash = rides.reduce((sum, r) => sum + r.pendingCash, 0);
   const happinessColor =
     parkHappiness >= 70 ? 'text-green-400' : parkHappiness >= 40 ? 'text-yellow-400' : 'text-red-400';
   const dirtColor = parkDirt <= 30 ? 'text-green-400' : parkDirt <= 60 ? 'text-yellow-400' : 'text-red-400';
@@ -198,28 +193,6 @@ export const HUD = () => {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={totalPendingCash <= 0}
-          onClick={collectAllCash}
-          className="border-neon-orange/50 text-neon-orange hover:bg-neon-orange/10 gap-1.5 font-bold disabled:opacity-40"
-          aria-label={
-            totalPendingCash > 0
-              ? `Collect all cash: ${formatMoney(totalPendingCash)}`
-              : 'Collect all cash (nothing to collect)'
-          }
-        >
-          <Coins size={14} />
-          <CountUp
-            to={totalPendingCash}
-            formatDisplay={formatMoneyCount}
-            duration={0.65}
-            className="font-bold tabular-nums"
-            startWhen
-          />
-        </Button>
-
         <Button
           variant={isPaused ? 'default' : 'secondary'}
           size="sm"

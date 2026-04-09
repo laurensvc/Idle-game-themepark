@@ -1,7 +1,7 @@
-import { BarChart2, Trophy, Wrench, Clock } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
-import { useGameStore } from '@/store/gameStore';
 import { Card } from '@/components/ui/card';
+import { useGameStore } from '@/store/gameStore';
+import { BarChart2, Clock, Trophy, Wrench } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import CountUp from './CountUp';
 
 const formatMoney = (amount: number): string => {

@@ -1,13 +1,13 @@
-import { X, Wrench, Users, Zap, Lock, CheckCircle, AlertTriangle, ArrowUp, DollarSign } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
-import { useGameStore } from '@/store/gameStore';
-import { getRideDefinition, getLevelUpCost, getLevelCapacityMultiplier, getLevelIncomeMultiplier } from '@/data/rides';
-import { UPGRADE_DEFINITIONS, getUpgradeDefinition } from '@/data/upgrades';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { getLevelCapacityMultiplier, getLevelIncomeMultiplier, getLevelUpCost, getRideDefinition } from '@/data/rides';
+import { UPGRADE_DEFINITIONS, getUpgradeDefinition } from '@/data/upgrades';
+import { cn } from '@/lib/utils';
+import { useGameStore } from '@/store/gameStore';
+import { AlertTriangle, ArrowUp, Battery, CheckCircle, Lock, Users, Wrench, X, Zap } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 
 const formatMoney = (amount: number): string => {
   if (amount >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;
@@ -25,7 +25,7 @@ const STATUS_COLORS: Record<string, { text: string; bg: string; border: string; 
   operating: { text: 'text-green-400', bg: 'bg-green-500/15', border: 'border-green-500/40', dot: 'bg-green-400' },
   broken: { text: 'text-red-400', bg: 'bg-red-500/15', border: 'border-red-500/40', dot: 'bg-red-400' },
   repairing: { text: 'text-yellow-400', bg: 'bg-yellow-500/15', border: 'border-yellow-500/40', dot: 'bg-yellow-400' },
-  idle: { text: 'text-muted-foreground', bg: 'bg-muted/30', border: 'border-border', dot: 'bg-muted-foreground' },
+  idle: { text: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/40', dot: 'bg-amber-400' },
   locked: { text: 'text-muted-foreground', bg: 'bg-muted/20', border: 'border-border', dot: 'bg-muted-foreground' },
 };
 
@@ -37,7 +37,7 @@ export const RideInspector = () => {
     repairRide,
     cleanRide,
     levelUpRide,
-    collectRideCash,
+    chargeRideBattery,
     purchasedUpgrades,
     money,
     buyUpgrade,
@@ -49,7 +49,7 @@ export const RideInspector = () => {
       repairRide: s.repairRide,
       cleanRide: s.cleanRide,
       levelUpRide: s.levelUpRide,
-      collectRideCash: s.collectRideCash,
+      chargeRideBattery: s.chargeRideBattery,
       purchasedUpgrades: s.purchasedUpgrades,
       money: s.money,
       buyUpgrade: s.buyUpgrade,
@@ -75,6 +75,8 @@ export const RideInspector = () => {
     ? Math.floor(def.baseCapacity * getLevelCapacityMultiplier(ride.level + 1))
     : currentCapacity;
   const nextIncomeMult = !isMaxLevel ? getLevelIncomeMultiplier(ride.level + 1) : currentIncomeMult;
+
+  const canChargeBattery = ride.status !== 'broken' && ride.status !== 'repairing' && ride.batteryLevel < 100;
 
   return (
     <div className="flex flex-col gap-4">
@@ -115,29 +117,67 @@ export const RideInspector = () => {
           />
           {ride.status === 'broken' && <AlertTriangle size={12} />}
           {ride.status === 'repairing' && <Wrench size={12} />}
-          {ride.status}
+          {ride.status === 'idle' && <Zap size={12} />}
+          {ride.status === 'idle' ? 'off' : ride.status}
         </Badge>
         <p className="text-muted-foreground px-2 text-xs">{def.description}</p>
       </Card>
 
-      <Button
-        variant="default"
-        size="lg"
-        disabled={ride.pendingCash <= 0}
-        onClick={() => collectRideCash(ride.instanceId)}
+      <Card
+        size="sm"
         className={cn(
-          'bg-neon-orange/90 text-primary-foreground hover:bg-neon-orange w-full gap-2 font-bold uppercase disabled:opacity-40',
-          ride.pendingCash > 0 && 'animate-pulse-neon'
+          'gap-3 py-4 shadow-none transition-colors',
+          canChargeBattery && 'ring-neon-violet/20 hover:ring-neon-violet/40 cursor-pointer ring-1'
         )}
+        role={canChargeBattery ? 'button' : undefined}
+        tabIndex={canChargeBattery ? 0 : undefined}
+        onClick={() => canChargeBattery && chargeRideBattery(ride.instanceId)}
+        onKeyDown={(e) => {
+          if (!canChargeBattery) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            chargeRideBattery(ride.instanceId);
+          }
+        }}
         aria-label={
-          ride.pendingCash > 0
-            ? `Collect ${formatMoney(ride.pendingCash)}`
-            : 'Collect cash (none pending)'
+          canChargeBattery
+            ? `Charge battery for ${def.name}, ${Math.round(ride.batteryLevel)} percent`
+            : ride.batteryLevel >= 100
+              ? `Battery full for ${def.name}`
+              : `Battery ${Math.round(ride.batteryLevel)} percent — cannot charge while broken or repairing`
         }
       >
-        <DollarSign size={16} />
-        Collect {formatMoney(ride.pendingCash)}
-      </Button>
+        <div className="text-muted-foreground flex items-center gap-2 px-4 text-xs font-bold tracking-wider uppercase">
+          <Battery size={14} className="text-neon-cyan" />
+          Battery — tap to charge
+        </div>
+        <Separator />
+        <div className="px-4">
+          <div className="mb-1 flex justify-between text-sm">
+            <span className="text-muted-foreground">Charge</span>
+            <span className="font-heading tabular-nums">{Math.round(ride.batteryLevel)}%</span>
+          </div>
+          <div className="pixel-bar bg-muted h-3 overflow-hidden rounded-sm">
+            <div
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${ride.batteryLevel}%`,
+                background: ride.batteryLevel > 40 ? '#22d3ee' : ride.batteryLevel > 15 ? '#eab308' : '#f97316',
+                boxShadow:
+                  ride.batteryLevel > 0 ? `0 0 10px ${ride.batteryLevel > 40 ? '#22d3ee' : '#f59e0b'}` : undefined,
+              }}
+            />
+          </div>
+          {!canChargeBattery && ride.batteryLevel < 100 && (
+            <p className="text-muted-foreground mt-2 text-center text-xs">
+              Available when ride is not broken or under repair.
+            </p>
+          )}
+          {ride.batteryLevel >= 100 && ride.status !== 'broken' && ride.status !== 'repairing' && (
+            <p className="text-muted-foreground mt-2 text-center text-xs">Battery full.</p>
+          )}
+        </div>
+      </Card>
 
       <Card size="sm" className="gap-3 py-4 shadow-none">
         <div className="text-muted-foreground px-4 text-xs font-bold tracking-wider uppercase">Live Stats</div>
@@ -197,9 +237,7 @@ export const RideInspector = () => {
           <Button
             variant="outline"
             size="sm"
-            disabled={
-              ride.dirtLevel <= 0 || ride.status === 'broken' || ride.status === 'repairing'
-            }
+            disabled={ride.dirtLevel <= 0 || ride.status === 'broken' || ride.status === 'repairing'}
             onClick={() => cleanRide(ride.instanceId)}
             className="mt-2 w-full border-green-500/40 text-green-400 hover:bg-green-500/10 disabled:opacity-40"
             aria-label={`Clean ${def.name}`}
@@ -260,9 +298,7 @@ export const RideInspector = () => {
           'w-full gap-2 font-bold uppercase disabled:opacity-40',
           ride.status === 'broken' && 'animate-pulse-neon'
         )}
-        aria-label={
-          ride.status === 'broken' ? `Repair ${def.name}` : `Repair ${def.name} (ride is not broken)`
-        }
+        aria-label={ride.status === 'broken' ? `Repair ${def.name}` : `Repair ${def.name} (ride is not broken)`}
       >
         <Wrench size={16} />
         Repair Now

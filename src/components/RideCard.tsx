@@ -1,26 +1,18 @@
-import { useCallback } from 'react';
-import { Wrench, Zap, Users, AlertTriangle, CheckCircle, Settings, DollarSign } from 'lucide-react';
-import { useGameStore } from '@/store/gameStore';
-import { getRideDefinition } from '@/data/rides';
-import { purchasedUpgradesIncludeAutoRepairForRide } from '@/data/upgrades';
-import type { Ride } from '@/types/game';
 import { playGameSfx } from '@/audio/soundManager';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import CountUp from './CountUp';
+import { getRideDefinition } from '@/data/rides';
+import { purchasedUpgradesIncludeAutoRepairForRide } from '@/data/upgrades';
+import { cn } from '@/lib/utils';
+import { useGameStore } from '@/store/gameStore';
+import type { Ride } from '@/types/game';
+import { AlertTriangle, Battery, CheckCircle, Settings, Users, Wrench, Zap } from 'lucide-react';
+import { useCallback } from 'react';
 
 interface RideCardProps {
   ride: Ride;
 }
-
-const formatMoney = (amount: number): string => {
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;
-  return `$${amount}`;
-};
-
-const formatMoneyCount = (n: number) => formatMoney(n);
 
 const STATUS_CONFIG = {
   operating: {
@@ -51,13 +43,13 @@ const STATUS_CONFIG = {
     dotGlow: 'shadow-[0_0_6px_#eab308]',
   },
   idle: {
-    label: 'IDLE',
-    color: 'text-muted-foreground',
-    badgeClass: 'border-muted bg-muted/30',
-    bgClass: 'bg-muted/20',
-    icon: null,
-    dot: 'bg-muted-foreground',
-    dotGlow: '',
+    label: 'OFF',
+    color: 'text-amber-400',
+    badgeClass: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
+    bgClass: 'bg-amber-500/5',
+    icon: <Zap size={12} className="opacity-80" />,
+    dot: 'bg-amber-400',
+    dotGlow: 'shadow-[0_0_6px_#f59e0b]',
   },
   locked: {
     label: 'LOCKED',
@@ -74,7 +66,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
   const defId = ride.definitionId;
   const repairRide = useGameStore((s) => s.repairRide);
   const selectRide = useGameStore((s) => s.selectRide);
-  const collectRideCash = useGameStore((s) => s.collectRideCash);
+  const chargeRideBattery = useGameStore((s) => s.chargeRideBattery);
   const selectedRideId = useGameStore((s) => s.selectedRideId);
   const hasAutoRepair = useGameStore(
     useCallback((s) => purchasedUpgradesIncludeAutoRepairForRide(s.purchasedUpgrades, defId), [defId])
@@ -91,9 +83,12 @@ export const RideCard = ({ ride }: RideCardProps) => {
     repairRide(ride.instanceId);
   };
 
-  const handleCollect = (e: React.MouseEvent) => {
+  const canChargeBattery = ride.status !== 'broken' && ride.status !== 'repairing' && ride.batteryLevel < 100;
+
+  const handleBatteryClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    collectRideCash(ride.instanceId);
+    if (!canChargeBattery) return;
+    chargeRideBattery(ride.instanceId);
   };
 
   const handleSelect = () => {
@@ -169,6 +164,53 @@ export const RideCard = ({ ride }: RideCardProps) => {
         )}
       </div>
 
+      <button
+        type="button"
+        disabled={!canChargeBattery}
+        onClick={handleBatteryClick}
+        className={cn(
+          'mb-2 w-full rounded-md border border-transparent text-left transition-colors',
+          canChargeBattery &&
+            'hover:border-neon-violet/40 hover:bg-neon-violet/10 focus-visible:ring-neon-violet/50 cursor-pointer focus-visible:ring-2 focus-visible:outline-none',
+          !canChargeBattery && 'cursor-not-allowed opacity-60'
+        )}
+        aria-label={
+          canChargeBattery
+            ? `Charge battery for ${def.name}, ${Math.round(ride.batteryLevel)} percent`
+            : ride.batteryLevel >= 100
+              ? `${def.name} battery full`
+              : `${def.name} battery cannot be charged while broken or repairing`
+        }
+      >
+        <div className="text-muted-foreground mb-0.5 flex items-center justify-between text-xs">
+          <span className="flex items-center gap-1 tracking-wider uppercase">
+            <Battery size={12} className={ride.batteryLevel > 30 ? 'text-neon-cyan' : 'text-amber-400'} />
+            Battery
+          </span>
+          <span className="tabular-nums">{Math.round(ride.batteryLevel)}%</span>
+        </div>
+        <div className="pixel-bar bg-muted h-2.5 overflow-hidden rounded-sm">
+          <div
+            className="h-full transition-all duration-300"
+            style={{
+              width: `${ride.batteryLevel}%`,
+              background: ride.batteryLevel > 40 ? '#22d3ee' : ride.batteryLevel > 15 ? '#eab308' : '#f97316',
+              boxShadow:
+                ride.batteryLevel > 0 ? `0 0 8px ${ride.batteryLevel > 40 ? '#22d3ee' : '#f59e0b'}` : undefined,
+            }}
+          />
+        </div>
+        {canChargeBattery ? (
+          <span className="text-muted-foreground mt-1 block text-[10px] tracking-wide">Tap to charge</span>
+        ) : (
+          ride.batteryLevel >= 100 &&
+          ride.status !== 'broken' &&
+          ride.status !== 'repairing' && (
+            <span className="text-muted-foreground mt-1 block text-[10px] tracking-wide">Battery full</span>
+          )
+        )}
+      </button>
+
       <div className="mb-2 flex items-center gap-1.5">
         <span className="text-muted-foreground w-10 text-xs tracking-wider uppercase">Thrill</span>
         <div className="flex gap-0.5">
@@ -235,40 +277,17 @@ export const RideCard = ({ ride }: RideCardProps) => {
         disabled={ride.status !== 'broken'}
         className="mt-2 w-full font-bold uppercase disabled:opacity-40"
         onClick={handleRepair}
-        aria-label={
-          ride.status === 'broken' ? `Repair ${def.name}` : `Repair ${def.name} (ride is not broken)`
-        }
+        aria-label={ride.status === 'broken' ? `Repair ${def.name}` : `Repair ${def.name} (ride is not broken)`}
       >
         <Wrench size={14} />
         Repair Now
       </Button>
 
-      <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={ride.pendingCash <= 0}
-          onClick={handleCollect}
-          className="border-neon-orange/60 text-neon-orange hover:bg-neon-orange/10 h-auto gap-1 px-2 py-1 text-xs font-bold disabled:opacity-40"
-          aria-label={
-            ride.pendingCash > 0
-              ? `Collect ${formatMoney(ride.pendingCash)}`
-              : 'Collect cash (none pending)'
-          }
-        >
-          <DollarSign size={12} />
-          <CountUp
-            to={ride.pendingCash}
-            formatDisplay={formatMoneyCount}
-            duration={0.65}
-            className="tabular-nums"
-            startWhen
-          />
-        </Button>
-        {isSelected && (
+      {isSelected && (
+        <div className="absolute top-2 right-2">
           <Settings size={14} className="text-primary animate-spin-slow" aria-hidden />
-        )}
-      </div>
+        </div>
+      )}
     </Card>
   );
 };

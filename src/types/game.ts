@@ -1,3 +1,4 @@
+/** `idle` = standby (typically empty battery); `operating` = running while battery has charge. */
 export type RideStatus = 'idle' | 'operating' | 'broken' | 'repairing' | 'locked';
 
 export type VisitorType = 'family' | 'thrill_seeker' | 'child' | 'elderly' | 'teen';
@@ -32,7 +33,8 @@ export interface Ride {
   isAutoRepair: boolean;
   level: number;
   ticksSinceLastBreakdown: number;
-  pendingCash: number;
+  /** 0–100; depletes while operating, click to charge. */
+  batteryLevel: number;
 }
 
 export interface UpgradeDefinition {

@@ -1,11 +1,11 @@
-import { Users, Heart } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
-import { useGameStore } from '@/store/gameStore';
-import type { VisitorType } from '@/types/game';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+import { useGameStore } from '@/store/gameStore';
+import type { VisitorType } from '@/types/game';
+import { Heart, Users } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 
 const VISITOR_CONFIG: Record<VisitorType, { label: string; icon: string; color: string }> = {
   family: { label: 'Family', icon: '👨‍👩‍👧‍👦', color: '#06b6d4' },

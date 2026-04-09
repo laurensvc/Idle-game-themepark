@@ -15,7 +15,7 @@ This backlog captures potential improvements for the game and ranks them by impl
 
 - [ ] **Visual polish pass**  
        Improve status colors, ride state readability, and empty-state presentation.
-- [ ] **Audio v1 foundation**  
+- [x] **Audio v1 foundation**  
        Add UI click sounds and basic ride hum/alert SFX with mute and volume controls.
 - [ ] **Quality-of-life controls**  
        Add bulk actions like "repair all broken" and "clean dirtiest ride", plus richer tooltips.

@@ -1,11 +1,11 @@
-import { ShoppingBag, Lock, CheckCircle, ChevronRight } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
-import { useGameStore } from '@/store/gameStore';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { RIDE_DEFINITIONS, getRideDefinition } from '@/data/rides';
 import { UPGRADE_DEFINITIONS, getUpgradeDefinition } from '@/data/upgrades';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useGameStore } from '@/store/gameStore';
+import { CheckCircle, ChevronRight, Lock, ShoppingBag } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 
 const formatMoney = (amount: number): string => {
   if (amount >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;

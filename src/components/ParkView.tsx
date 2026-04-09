@@ -1,14 +1,14 @@
-import { lazy, Suspense, useState } from 'react';
+import { playGameSfx } from '@/audio/soundManager';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
+import { BarChart2, Layers, ShoppingBag, Users } from 'lucide-react';
+import { lazy, Suspense, useState } from 'react';
 import { RideCard } from './RideCard';
 import { RideInspector } from './RideInspector';
-import { ShoppingBag, Users, BarChart2, Layers } from 'lucide-react';
-import { playGameSfx } from '@/audio/soundManager';
-import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card } from '@/components/ui/card';
 
 const ShopPanel = lazy(() => import('./ShopPanel').then((m) => ({ default: m.ShopPanel })));
 const VisitorPanel = lazy(() => import('./VisitorPanel').then((m) => ({ default: m.VisitorPanel })));

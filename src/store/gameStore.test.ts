@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resetGameStore, useGameStore } from './gameStore';
+import { RIDE_BATTERY_CHARGE_PER_CLICK, RIDE_BATTERY_DRAIN_PER_TICK, resetGameStore, useGameStore } from './gameStore';
 
 describe('gameStore', () => {
   beforeEach(() => {
@@ -11,20 +11,24 @@ describe('gameStore', () => {
     vi.useRealTimers();
   });
 
-  it('starts with default money and one ride', () => {
+  it('starts with empty battery, idle, no earnings until charged', () => {
     const { money, rides } = useGameStore.getState();
     expect(money).toBe(500);
     expect(rides).toHaveLength(1);
     expect(rides[0].definitionId).toBe('ferris_wheel');
-    expect(rides[0].pendingCash).toBe(0);
+    expect(rides[0].status).toBe('idle');
+    expect(rides[0].batteryLevel).toBe(0);
   });
 
-  it('buyRide subtracts cost and adds the ride', () => {
+  it('buyRide subtracts cost and adds the ride idle with empty battery', () => {
     useGameStore.setState({ money: 500 });
     useGameStore.getState().buyRide('carousel');
     const { money, rides } = useGameStore.getState();
     expect(money).toBe(350);
-    expect(rides.some((r) => r.definitionId === 'carousel')).toBe(true);
+    const carousel = rides.find((r) => r.definitionId === 'carousel');
+    expect(carousel).toBeDefined();
+    expect(carousel!.status).toBe('idle');
+    expect(carousel!.batteryLevel).toBe(0);
   });
 
   it('buyRide does nothing when too poor', () => {
@@ -85,34 +89,67 @@ describe('gameStore', () => {
     expect(useGameStore.getState().notifications.map((n) => n.id)).toEqual(['n2']);
   });
 
-  it('tick accumulates pendingCash on rides instead of adding to money', () => {
+  it('tick does not add money while battery is empty', () => {
     const moneyBefore = useGameStore.getState().money;
     useGameStore.getState().tick();
-    const { money, rides } = useGameStore.getState();
-    expect(money).toBe(moneyBefore);
-    expect(rides[0].pendingCash).toBeGreaterThan(0);
+    expect(useGameStore.getState().money).toBe(moneyBefore);
   });
 
-  it('collectRideCash moves pending cash to money', () => {
+  it('chargeRideBattery fills from idle and tick adds money', () => {
+    const instanceId = useGameStore.getState().rides[0].instanceId;
+    useGameStore.getState().chargeRideBattery(instanceId);
+    const { rides } = useGameStore.getState();
+    expect(rides[0].batteryLevel).toBe(RIDE_BATTERY_CHARGE_PER_CLICK);
+    expect(rides[0].status).toBe('operating');
+    const moneyBefore = useGameStore.getState().money;
+    useGameStore.getState().tick();
+    expect(useGameStore.getState().money).toBeGreaterThan(moneyBefore);
+  });
+
+  it('chargeRideBattery increases battery while operating', () => {
     const instanceId = useGameStore.getState().rides[0].instanceId;
     useGameStore.setState({
-      rides: useGameStore.getState().rides.map((r) => ({ ...r, pendingCash: 100 })),
+      rides: useGameStore.getState().rides.map((r) => ({
+        ...r,
+        status: 'operating' as const,
+        batteryLevel: 50,
+      })),
     });
-    useGameStore.getState().collectRideCash(instanceId);
-    const { money, rides } = useGameStore.getState();
-    expect(money).toBe(600);
-    expect(rides[0].pendingCash).toBe(0);
+    useGameStore.getState().chargeRideBattery(instanceId);
+    expect(useGameStore.getState().rides[0].batteryLevel).toBe(Math.min(100, 50 + RIDE_BATTERY_CHARGE_PER_CLICK));
+    expect(useGameStore.getState().rides[0].status).toBe('operating');
   });
 
-  it('collectAllCash collects from all rides', () => {
-    useGameStore.getState().buyRide('carousel');
+  it('battery drains while operating; at zero ride goes idle', () => {
+    const instanceId = useGameStore.getState().rides[0].instanceId;
     useGameStore.setState({
-      rides: useGameStore.getState().rides.map((r) => ({ ...r, pendingCash: 50 })),
+      rides: useGameStore
+        .getState()
+        .rides.map((r) =>
+          r.instanceId === instanceId
+            ? { ...r, status: 'operating' as const, batteryLevel: RIDE_BATTERY_DRAIN_PER_TICK }
+            : r
+        ),
     });
-    useGameStore.getState().collectAllCash();
-    const { money, rides } = useGameStore.getState();
-    expect(money).toBe(450);
-    expect(rides.every((r) => r.pendingCash === 0)).toBe(true);
+    useGameStore.getState().tick();
+    const ride = useGameStore.getState().rides.find((r) => r.instanceId === instanceId)!;
+    expect(ride.batteryLevel).toBe(0);
+    expect(ride.status).toBe('idle');
+  });
+
+  it('chargeRideBattery does nothing when broken', () => {
+    const instanceId = useGameStore.getState().rides[0].instanceId;
+    useGameStore.setState({
+      rides: useGameStore.getState().rides.map((r) => ({
+        ...r,
+        status: 'broken' as const,
+        batteryLevel: 20,
+      })),
+    });
+    useGameStore.getState().chargeRideBattery(instanceId);
+    const r = useGameStore.getState().rides[0];
+    expect(r.batteryLevel).toBe(20);
+    expect(r.status).toBe('broken');
   });
 
   it('levelUpRide increments level and deducts cost', () => {
