@@ -1,4 +1,4 @@
-/** `idle` = standby (typically empty battery); `operating` = running while battery has charge. */
+/** `idle` = standby (no park power or rides forced off); `operating` = running while park battery supplies rides. */
 export type RideStatus = 'idle' | 'operating' | 'broken' | 'repairing' | 'locked';
 
 export type VisitorType = 'family' | 'thrill_seeker' | 'child' | 'elderly' | 'teen';
@@ -33,8 +33,6 @@ export interface Ride {
   isAutoRepair: boolean;
   level: number;
   ticksSinceLastBreakdown: number;
-  /** 0–100; depletes while operating, click to charge. */
-  batteryLevel: number;
 }
 
 export interface UpgradeDefinition {
@@ -82,6 +80,8 @@ export interface GameStats {
 
 export interface GameState {
   money: number;
+  /** 0–100; shared by all rides; depletes while any ride is operating; charge from park UI. */
+  parkBatteryLevel: number;
   rides: Ride[];
   visitors: VisitorGroup[];
   parkDirt: number; // 0-100 global cleanliness

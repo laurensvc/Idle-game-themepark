@@ -7,7 +7,7 @@ import { purchasedUpgradesIncludeAutoRepairForRide } from '@/data/upgrades';
 import { cn } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
 import type { Ride } from '@/types/game';
-import { AlertTriangle, Battery, CheckCircle, Settings, Users, Wrench, Zap } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Settings, Users, Wrench, Zap } from 'lucide-react';
 import { useCallback } from 'react';
 
 interface RideCardProps {
@@ -66,7 +66,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
   const defId = ride.definitionId;
   const repairRide = useGameStore((s) => s.repairRide);
   const selectRide = useGameStore((s) => s.selectRide);
-  const chargeRideBattery = useGameStore((s) => s.chargeRideBattery);
+  const parkBatteryLevel = useGameStore((s) => s.parkBatteryLevel);
   const selectedRideId = useGameStore((s) => s.selectedRideId);
   const hasAutoRepair = useGameStore(
     useCallback((s) => purchasedUpgradesIncludeAutoRepairForRide(s.purchasedUpgrades, defId), [defId])
@@ -81,14 +81,6 @@ export const RideCard = ({ ride }: RideCardProps) => {
   const handleRepair = (e: React.MouseEvent) => {
     e.stopPropagation();
     repairRide(ride.instanceId);
-  };
-
-  const canChargeBattery = ride.status !== 'broken' && ride.status !== 'repairing' && ride.batteryLevel < 100;
-
-  const handleBatteryClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!canChargeBattery) return;
-    chargeRideBattery(ride.instanceId);
   };
 
   const handleSelect = () => {
@@ -164,52 +156,11 @@ export const RideCard = ({ ride }: RideCardProps) => {
         )}
       </div>
 
-      <button
-        type="button"
-        disabled={!canChargeBattery}
-        onClick={handleBatteryClick}
-        className={cn(
-          'mb-2 w-full rounded-md border border-transparent text-left transition-colors',
-          canChargeBattery &&
-            'hover:border-neon-violet/40 hover:bg-neon-violet/10 focus-visible:ring-neon-violet/50 cursor-pointer focus-visible:ring-2 focus-visible:outline-none',
-          !canChargeBattery && 'cursor-not-allowed opacity-60'
-        )}
-        aria-label={
-          canChargeBattery
-            ? `Charge battery for ${def.name}, ${Math.round(ride.batteryLevel)} percent`
-            : ride.batteryLevel >= 100
-              ? `${def.name} battery full`
-              : `${def.name} battery cannot be charged while broken or repairing`
-        }
-      >
-        <div className="text-muted-foreground mb-0.5 flex items-center justify-between text-xs">
-          <span className="flex items-center gap-1 tracking-wider uppercase">
-            <Battery size={12} className={ride.batteryLevel > 30 ? 'text-neon-cyan' : 'text-amber-400'} />
-            Battery
-          </span>
-          <span className="tabular-nums">{Math.round(ride.batteryLevel)}%</span>
-        </div>
-        <div className="pixel-bar bg-muted h-2.5 overflow-hidden rounded-sm">
-          <div
-            className="h-full transition-all duration-300"
-            style={{
-              width: `${ride.batteryLevel}%`,
-              background: ride.batteryLevel > 40 ? '#22d3ee' : ride.batteryLevel > 15 ? '#eab308' : '#f97316',
-              boxShadow:
-                ride.batteryLevel > 0 ? `0 0 8px ${ride.batteryLevel > 40 ? '#22d3ee' : '#f59e0b'}` : undefined,
-            }}
-          />
-        </div>
-        {canChargeBattery ? (
-          <span className="text-muted-foreground mt-1 block text-[10px] tracking-wide">Tap to charge</span>
-        ) : (
-          ride.batteryLevel >= 100 &&
-          ride.status !== 'broken' &&
-          ride.status !== 'repairing' && (
-            <span className="text-muted-foreground mt-1 block text-[10px] tracking-wide">Battery full</span>
-          )
-        )}
-      </button>
+      {parkBatteryLevel <= 0 && ride.status === 'idle' && (
+        <p className="text-muted-foreground mb-2 text-[10px] leading-snug tracking-wide">
+          Park power empty — charge the bar above.
+        </p>
+      )}
 
       <div className="mb-2 flex items-center gap-1.5">
         <span className="text-muted-foreground w-10 text-xs tracking-wider uppercase">Thrill</span>

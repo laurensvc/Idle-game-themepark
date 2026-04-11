@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { HUD } from './components/HUD';
+import { ParkBatteryBar } from './components/ParkBatteryBar';
 import { ParkView } from './components/ParkView';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -43,6 +44,7 @@ const App = () => {
     <TooltipProvider delayDuration={200}>
       <div className="dark crt-overlay bg-background text-foreground flex h-screen flex-col overflow-hidden">
         <HUD />
+        <ParkBatteryBar />
         <ParkView />
         <Toaster position="bottom-right" />
       </div>
