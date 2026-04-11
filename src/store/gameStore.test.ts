@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RIDE_BATTERY_CHARGE_PER_CLICK, RIDE_BATTERY_DRAIN_PER_TICK, resetGameStore, useGameStore } from './gameStore';
+import {
+  RIDE_BATTERY_CHARGE_PER_CLICK,
+  RIDE_BATTERY_DRAIN_PER_TICK,
+  TICKET_BOOTH_CASH_MAX,
+  TICKET_BOOTH_CASH_MIN,
+  resetGameStore,
+  useGameStore,
+} from './gameStore';
 
 describe('gameStore', () => {
   beforeEach(() => {
@@ -174,6 +181,32 @@ describe('gameStore', () => {
     });
     useGameStore.getState().levelUpRide(instanceId);
     expect(useGameStore.getState().rides[0].level).toBe(10);
+  });
+
+  it('ticketBoothClick adds cash in range and returns the gain', () => {
+    const before = useGameStore.getState().money;
+    const gain = useGameStore.getState().ticketBoothClick();
+    expect(gain).toBeGreaterThanOrEqual(TICKET_BOOTH_CASH_MIN);
+    expect(gain).toBeLessThanOrEqual(TICKET_BOOTH_CASH_MAX);
+    expect(useGameStore.getState().money).toBe(before + gain);
+  });
+
+  it('ticketBoothClick does nothing when paused', () => {
+    const before = useGameStore.getState().money;
+    useGameStore.getState().togglePause();
+    const gain = useGameStore.getState().ticketBoothClick();
+    expect(gain).toBe(0);
+    expect(useGameStore.getState().money).toBe(before);
+  });
+
+  it('arenaQuickSweep reduces park and ride dirt when dirty', () => {
+    useGameStore.setState({
+      parkDirt: 10,
+      rides: useGameStore.getState().rides.map((r) => ({ ...r, dirtLevel: 8 })),
+    });
+    useGameStore.getState().arenaQuickSweep();
+    expect(useGameStore.getState().parkDirt).toBe(8);
+    expect(useGameStore.getState().rides[0].dirtLevel).toBe(6);
   });
 
   it('auto-dismisses old notifications in tick', () => {

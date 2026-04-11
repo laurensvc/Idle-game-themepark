@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
 import { BarChart2, Layers, ShoppingBag, Users } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
+import { ActionArena } from './ActionArena';
 import { RideCard } from './RideCard';
 import { RideInspector } from './RideInspector';
 
@@ -47,7 +48,10 @@ export const ParkView = () => {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+      <ActionArena />
+
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:flex-row">
       <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden p-4">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
@@ -60,7 +64,7 @@ export const ParkView = () => {
           }}
         />
 
-        <div className="relative mb-4 flex items-center gap-3">
+        <div className="relative mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="font-heading text-foreground text-lg leading-none font-black sm:text-xl">
               Your <span className="neon-text-purple text-neon-violet">Theme Park</span>
@@ -72,6 +76,10 @@ export const ParkView = () => {
               )}
             </p>
           </div>
+          <p className="text-muted-foreground max-w-md text-xs leading-snug sm:text-right">
+            Tap rides to inspect · use <span className="text-foreground font-semibold">Shop</span> on the right for
+            upgrades · power bar on top feeds every ride
+          </p>
         </div>
 
         <ScrollArea className="relative min-h-0 flex-1 pr-3">
@@ -100,7 +108,7 @@ export const ParkView = () => {
         </ScrollArea>
       </main>
 
-      <aside className="bg-sidebar border-sidebar-border flex w-80 shrink-0 flex-col overflow-hidden border-l">
+      <aside className="bg-sidebar border-sidebar-border flex w-full shrink-0 flex-col overflow-hidden border-t md:w-80 md:border-t-0 md:border-l">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex h-full min-h-0 flex-1 flex-col gap-0">
           <TabsList
             variant="line"
@@ -204,6 +212,7 @@ export const ParkView = () => {
           </div>
         </Tabs>
       </aside>
+      </div>
     </div>
   );
 };

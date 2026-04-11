@@ -12,6 +12,9 @@ export const NOTIFICATION_TTL_MS = 5000;
 export const RIDE_BATTERY_DRAIN_PER_TICK = 2;
 /** Battery restored per click (clamped to 100). */
 export const RIDE_BATTERY_CHARGE_PER_CLICK = 14;
+/** Cash per tap at the ticket booth (inclusive range). */
+export const TICKET_BOOTH_CASH_MIN = 2;
+export const TICKET_BOOTH_CASH_MAX = 5;
 const VISITOR_TYPES: VisitorType[] = ['family', 'thrill_seeker', 'child', 'elderly', 'teen'];
 const AUDIO_SETTINGS_STORAGE_KEY = 'idlepark_audio_settings_v1';
 
@@ -127,6 +130,12 @@ interface GameActions {
   setSfxVolume: (volume: number) => void;
   setMusicVolume: (volume: number) => void;
   dismissNotification: (id: string) => void;
+  /** Manual tap income (Cookie Clicker–style front gate). Returns cash gained (0 if paused). */
+  ticketBoothClick: () => number;
+  /** Small manual park path sweep; no-op when already spotless. */
+  arenaQuickSweep: () => void;
+  /** Tiny tip + happiness bump for “maintenance tap” feedback. */
+  arenaMaintenanceClick: () => void;
 }
 
 const initialAudioSettings = getStoredAudioSettings();
@@ -527,6 +536,47 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     }));
+  },
+
+  ticketBoothClick: () => {
+    const state = get();
+    if (state.isPaused) return 0;
+    const gain =
+      TICKET_BOOTH_CASH_MIN +
+      Math.floor(Math.random() * (TICKET_BOOTH_CASH_MAX - TICKET_BOOTH_CASH_MIN + 1));
+    set({
+      money: state.money + gain,
+      stats: { ...state.stats, totalEarnings: state.stats.totalEarnings + gain },
+    });
+    playGameSfx('cash_collect');
+    return gain;
+  },
+
+  arenaQuickSweep: () => {
+    const state = get();
+    if (state.isPaused) return;
+    const hasDirt = state.parkDirt > 0 || state.rides.some((r) => r.dirtLevel > 0);
+    if (!hasDirt) {
+      playGameSfx('ui_click');
+      return;
+    }
+    set({
+      parkDirt: Math.max(0, state.parkDirt - 2),
+      rides: state.rides.map((r) => ({ ...r, dirtLevel: Math.max(0, r.dirtLevel - 2) })),
+    });
+    playGameSfx('ui_click');
+  },
+
+  arenaMaintenanceClick: () => {
+    const state = get();
+    if (state.isPaused) return;
+    const tip = 1;
+    set({
+      money: state.money + tip,
+      parkHappiness: Math.min(100, state.parkHappiness + 0.35),
+      stats: { ...state.stats, totalEarnings: state.stats.totalEarnings + tip },
+    });
+    playGameSfx('ui_click');
   },
 }));
 
