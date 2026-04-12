@@ -29,7 +29,7 @@ const VisitorPanel: React.FC = memo(() => {
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea className="min-h-0 flex-1">
       <div className="space-y-4 px-3 pb-3">
         <div className="park-card flex items-center justify-between p-4">
           <div>
@@ -62,7 +62,7 @@ const VisitorPanel: React.FC = memo(() => {
             {happiness < 20
               ? 'Visitors are leaving! Fix problems ASAP.'
               : happiness < 50
-                ? 'Visitors are unhappy. Clean up and start more rides!'
+                ? 'Visitors are unhappy. Start rides and keep them running!'
                 : 'Visitors are enjoying your park!'}
           </div>
         </div>

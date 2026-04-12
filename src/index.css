@@ -197,6 +197,33 @@
   }
 }
 
+@keyframes arena-crit-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 oklch(0.82 0.16 90 / 0.55);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px oklch(0.82 0.16 90 / 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 oklch(0.82 0.16 90 / 0);
+  }
+}
+
+@keyframes golden-shimmer {
+  0%,
+  100% {
+    transform: scale(1) rotate(-3deg);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.06) rotate(3deg);
+    filter: brightness(1.08);
+  }
+}
+
 @keyframes progress-fill {
   from {
     width: 0%;
@@ -237,17 +264,12 @@
     @apply pointer-events-none absolute text-sm font-bold;
   }
 
-  .status-operating {
-    @apply text-park-green;
+  .arena-crit-pulse {
+    animation: arena-crit-pulse 0.42s ease-out;
   }
-  .status-broken {
-    @apply text-park-red;
-  }
-  .status-repairing {
-    @apply text-park-yellow;
-  }
-  .status-idle {
-    @apply text-muted-foreground;
+
+  .golden-ticket-btn {
+    animation: golden-shimmer 1.8s ease-in-out infinite;
   }
 }
 

@@ -1,5 +1,3 @@
-export type RideStatus = 'idle' | 'operating' | 'broken' | 'repairing';
-
 export interface RideDefinition {
   id: string;
   name: string;
@@ -7,23 +5,36 @@ export interface RideDefinition {
   baseCost: number;
   baseIncome: number;
   baseCapacity: number;
-  breakdownChance: number;
-  repairTime: number;
-  baseLevelUpCost: number;
-  dirtRate: number;
   category: 'gentle' | 'thrill' | 'water' | 'family';
+}
+
+/** Per-ride path upgrade (one-time purchase per node; parallel tracks per ride type). */
+export type RidePathEffectType = 'capacity_pct' | 'income_pct' | 'throughput_pct';
+
+export interface RidePathEffect {
+  type: RidePathEffectType;
+  /** Fractional bonus, e.g. 0.1 = +10% capacity or income. */
+  value: number;
+}
+
+export interface RidePathUpgradeDefinition {
+  id: string;
+  rideId: string;
+  name: string;
+  description: string;
+  icon: string;
+  cost: number;
+  prerequisiteId?: string;
+  effects: RidePathEffect[];
 }
 
 export interface RideInstance {
   id: string;
   definitionId: string;
-  status: RideStatus;
-  level: number;
   ticksSincePurchase: number;
-  breakdownCooldown: number;
-  repairProgress: number;
-  dirt: number;
   visitors: number;
+  /** Purchased node ids from `ridePathUpgrades` for this ride type. */
+  purchasedPathIds: string[];
 }
 
 export type VisitorType = 'family' | 'thrill_seeker' | 'child' | 'elderly' | 'teen';
@@ -38,16 +49,7 @@ export interface Visitor {
 export type UpgradeCategory = 'global' | 'ride';
 
 export interface UpgradeEffect {
-  type:
-    | 'visitor_attraction'
-    | 'auto_clean'
-    | 'happiness_boost'
-    | 'auto_repair'
-    | 'capacity_boost'
-    | 'income_boost'
-    | 'breakdown_reduction'
-    | 'battery_efficiency'
-    | 'janitor';
+  type: 'visitor_attraction' | 'happiness_boost' | 'capacity_boost' | 'income_boost';
   value: number;
 }
 
@@ -83,12 +85,36 @@ export interface AudioSettings {
   musicVolume: number;
 }
 
+/** Timed buffs from golden ticket / future systems. Stacking: multiply magnitudes of the same kind. */
+export type ActiveBuffKind = 'ride_income' | 'ticket_cash' | 'visitor_spawn';
+
+export interface ActiveBuff {
+  id: string;
+  kind: ActiveBuffKind;
+  expiresAtTick: number;
+  /** Multiplier applied to the relevant stat (e.g. 2 = double). */
+  magnitude: number;
+}
+
+export interface GoldenTicketState {
+  visible: boolean;
+  /** First tick index at which the ticket is gone if not collected (miss). */
+  expiresAtTick: number;
+  /** Spawn rolls when tickCount reaches this while not visible. */
+  spawnAfterTick: number;
+  variant: number;
+}
+
+export interface TicketBoothResult {
+  amount: number;
+  isCrit: boolean;
+  comboLevel: number;
+}
+
 export interface GameState {
   money: number;
   rides: RideInstance[];
-  parkBattery: number;
   happiness: number;
-  parkDirt: number;
   visitors: Visitor[];
   upgrades: PurchasedUpgrade[];
   notifications: GameNotification[];
@@ -97,19 +123,20 @@ export interface GameState {
   totalVisitorsServed: number;
   audioSettings: AudioSettings;
   selectedRideId: string | null;
+  activeBuffs: ActiveBuff[];
+  goldenTicket: GoldenTicketState;
+  ticketComboCount: number;
+  lastTicketClickMs: number;
 }
 
 export interface GameActions {
   tick: () => void;
   buyRide: (definitionId: string) => void;
-  levelUpRide: (rideId: string) => void;
-  toggleRide: (rideId: string) => void;
-  repairRide: (rideId: string) => void;
-  rechargeBattery: () => void;
-  cleanPark: () => void;
+  purchaseRidePathUpgrade: (rideId: string, pathUpgradeId: string) => void;
   buyUpgrade: (upgradeId: string) => void;
-  ticketBooth: () => number;
-  tuneUp: () => void;
+  /** `clickMs` should be `performance.now()` from the click handler for combo timing. */
+  ticketBooth: (clickMs: number) => TicketBoothResult;
+  collectGoldenTicket: () => void;
   selectRide: (rideId: string | null) => void;
   setAudioSettings: (settings: Partial<AudioSettings>) => void;
   dismissNotification: (id: string) => void;

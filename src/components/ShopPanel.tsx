@@ -10,14 +10,16 @@ import { memo } from 'react';
 
 const ShopPanel: React.FC = memo(() => {
   const money = useGameStore((s) => s.money);
+  const rides = useGameStore((s) => s.rides);
   const buyRide = useGameStore((s) => s.buyRide);
   const buyUpgrade = useGameStore((s) => s.buyUpgrade);
   const purchasedUpgrades = useGameStore((s) => s.upgrades);
 
+  const ownedRideTypes = new Set(rides.map((r) => r.definitionId));
   const ownedUpgradeIds = new Set(purchasedUpgrades.map((u) => u.upgradeId));
 
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea className="min-h-0 flex-1">
       <div className="space-y-4 px-3 pb-3">
         <section>
           <h2 className="text-foreground mb-2 flex items-center gap-1.5 text-sm font-bold">
@@ -26,25 +28,38 @@ const ShopPanel: React.FC = memo(() => {
           </h2>
           <div className="grid gap-2">
             {RIDE_DEFINITIONS.map((def) => {
+              const owned = ownedRideTypes.has(def.id);
               const canAfford = money >= def.baseCost;
+              const canBuy = !owned && canAfford;
               return (
-                <div key={def.id} className={cn('park-card flex items-center gap-3 p-3', !canAfford && 'opacity-60')}>
+                <div
+                  key={def.id}
+                  className={cn(
+                    'park-card flex items-center gap-3 p-3',
+                    owned && 'bg-park-green/5 opacity-70',
+                    !owned && !canAfford && 'opacity-60'
+                  )}
+                >
                   <span className="shrink-0 text-2xl">{def.emoji}</span>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold">{def.name}</div>
                     <div className="text-muted-foreground text-xs">
-                      {def.baseIncome}/s income · {def.baseCapacity} cap
+                      {def.baseIncome}/s income · {def.baseCapacity} cap · one per park
                     </div>
                   </div>
-                  <Button
-                    variant="coin"
-                    size="sm"
-                    disabled={!canAfford}
-                    onClick={() => buyRide(def.id)}
-                    className="shrink-0"
-                  >
-                    {formatMoney(def.baseCost)}
-                  </Button>
+                  {owned ? (
+                    <span className="text-park-green shrink-0 text-xs font-semibold">In park</span>
+                  ) : (
+                    <Button
+                      variant="coin"
+                      size="sm"
+                      disabled={!canBuy}
+                      onClick={() => buyRide(def.id)}
+                      className="shrink-0"
+                    >
+                      {formatMoney(def.baseCost)}
+                    </Button>
+                  )}
                 </div>
               );
             })}

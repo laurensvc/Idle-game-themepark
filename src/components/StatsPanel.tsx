@@ -65,7 +65,7 @@ const StatsPanel: React.FC = memo(() => {
   ];
 
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea className="min-h-0 flex-1">
       <div className="space-y-2 px-3 pb-3">
         {stats.map((stat) => (
           <div key={stat.label} className="park-card flex items-center gap-3 p-3">

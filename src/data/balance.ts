@@ -2,37 +2,40 @@ export const BALANCE = {
   // --- Starting state ---
   startingMoney: 0,
   startingHappiness: 80,
-  startingBattery: 0,
-
-  // --- Battery / Power ---
-  batteryDrainPerRide: 2,
-  batteryRechargeAmount: 5,
-  batteryUpgradeReduction: 0.25,
 
   // --- Revenue ---
-  incomeMultPerLevel: 0.08,
-  capacityMultPerLevel: 0.1,
   ticketBoothMin: 1,
   ticketBoothMax: 3,
-  tuneUpCash: 1,
-  tuneUpHappiness: 0.35,
 
-  // --- Rides ---
-  maxRideLevel: 10,
-  levelUpCostExponent: 1.5,
-  breakdownCooldownTicks: 30,
+  /** Consecutive ticket taps within this window (ms) build combo. */
+  comboWindowMs: 2500,
+  comboMaxStacks: 12,
+  /** Extra multiplier per stack after the first: effective = 1 + (stacks-1) * bonus. */
+  comboBonusPerStack: 0.12,
+  critChance: 0.04,
+  critIncomeMultiplier: 8,
 
-  // --- Dirt ---
-  dirtBaseRate: 0.2,
-  dirtPerOperatingRide: 0.1,
-  cleanSweepAmount: 2,
-  janitorCleanRate: 0.3,
-  autoCleanRideRate: 0.2,
+  // --- Golden ticket ---
+  goldenSpawnMinTicks: 45,
+  goldenSpawnMaxTicks: 120,
+  goldenLifetimeTicks: 12,
+  goldenMoneyMin: 15,
+  goldenMoneyMax: 80,
+  goldenHappinessBump: 14,
+  goldenVipTipMin: 12,
+  goldenVipTipMax: 48,
+
+  // --- Timed buffs (durations in ticks ≈ seconds) ---
+  buffRideIncomeFrenzyTicks: 28,
+  buffRideIncomeFrenzyMult: 2,
+  buffTicketRushTicks: 22,
+  buffTicketRushMult: 2,
+  buffVisitorSurgeTicks: 32,
+  buffVisitorSurgeMult: 1.55,
 
   // --- Happiness ---
   happinessLerpRate: 0.05,
   happinessBaseTarget: 50,
-  happinessPerBrokenRide: -15,
   happinessPerOperatingRide: 5,
   happinessLeaveThreshold: 20,
 

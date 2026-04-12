@@ -1,34 +1,46 @@
+import { BALANCE } from '@/data/balance';
 import { cn } from '@/lib/utils';
-import { useGameStore } from '@/store/gameStore';
-import { DollarSign, Paintbrush, Wrench, Zap } from 'lucide-react';
+import { selectGoldenTicket, selectTickCount, useGameStore } from '@/store/gameStore';
+import { DollarSign, Sparkles } from 'lucide-react';
 import { memo, useCallback, useRef, useState } from 'react';
+
+type FloatVariant = 'cash' | 'crit' | 'combo';
 
 interface FloatingText {
   id: number;
   text: string;
   x: number;
   y: number;
+  variant: FloatVariant;
 }
 
 let feedbackId = 0;
 
-const ActionArena: React.FC = memo(() => {
+const GOLDEN_EMOJI = ['🎫', '🌟', '✨'] as const;
+
+export interface ActionArenaProps {
+  /** Fired after a successful ticket tap; use for wallet fly animations. */
+  onTicketCashFly?: (ticketButton: HTMLElement, opts: { isCrit: boolean }) => void;
+}
+
+const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
   const ticketBooth = useGameStore((s) => s.ticketBooth);
-  const rechargeBattery = useGameStore((s) => s.rechargeBattery);
-  const cleanPark = useGameStore((s) => s.cleanPark);
-  const tuneUp = useGameStore((s) => s.tuneUp);
+  const collectGoldenTicket = useGameStore((s) => s.collectGoldenTicket);
+  const golden = useGameStore(selectGoldenTicket);
+  const tickCount = useGameStore(selectTickCount);
 
   const [floats, setFloats] = useState<FloatingText[]>([]);
+  const [critPulse, setCritPulse] = useState(false);
   const arenaRef = useRef<HTMLDivElement>(null);
 
-  const spawnFloat = useCallback((text: string, buttonEl: HTMLElement) => {
+  const spawnFloat = useCallback((text: string, buttonEl: HTMLElement, variant: FloatVariant) => {
     if (!arenaRef.current) return;
     const arenaRect = arenaRef.current.getBoundingClientRect();
     const btnRect = buttonEl.getBoundingClientRect();
     const x = btnRect.left - arenaRect.left + btnRect.width / 2;
     const y = btnRect.top - arenaRect.top;
     const id = feedbackId++;
-    setFloats((prev) => [...prev, { id, text, x, y }]);
+    setFloats((prev) => [...prev, { id, text, x, y, variant }]);
     setTimeout(() => {
       setFloats((prev) => {
         const idx = prev.findIndex((f) => f.id === id);
@@ -42,69 +54,87 @@ const ActionArena: React.FC = memo(() => {
 
   const handleTicket = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
-      const amount = ticketBooth();
-      spawnFloat(`+$${amount}`, e.currentTarget);
+      const result = ticketBooth(performance.now());
+      let label = `+$${result.amount}`;
+      if (result.isCrit) label = `CRIT! +$${result.amount}`;
+      else if (result.comboLevel >= 3) label = `+$${result.amount} · ×${result.comboLevel}`;
+
+      const variant: FloatVariant = result.isCrit ? 'crit' : result.comboLevel >= 3 ? 'combo' : 'cash';
+      spawnFloat(label, e.currentTarget, variant);
+      onTicketCashFly?.(e.currentTarget, { isCrit: result.isCrit });
+
+      if (result.isCrit) {
+        setCritPulse(true);
+        window.setTimeout(() => setCritPulse(false), 420);
+      }
     },
-    [ticketBooth, spawnFloat]
+    [ticketBooth, spawnFloat, onTicketCashFly]
   );
 
-  const handleBattery = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      rechargeBattery();
-      spawnFloat('+14%', e.currentTarget);
-    },
-    [rechargeBattery, spawnFloat]
-  );
-
-  const handleClean = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      cleanPark();
-      spawnFloat('Cleaned!', e.currentTarget);
-    },
-    [cleanPark, spawnFloat]
-  );
-
-  const handleTuneUp = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      tuneUp();
-      spawnFloat('+$1', e.currentTarget);
-    },
-    [tuneUp, spawnFloat]
-  );
+  const goldenTicksLeft = golden.visible ? Math.max(0, golden.expiresAtTick - tickCount) : 0;
+  const goldenProgress =
+    golden.visible && BALANCE.goldenLifetimeTicks > 0 ? goldenTicksLeft / BALANCE.goldenLifetimeTicks : 0;
 
   return (
-    <div ref={arenaRef} className="relative px-3 py-2">
-      <div className="grid grid-cols-4 gap-2">
-        <ArenaButton
-          icon={<DollarSign className="h-5 w-5" />}
-          label="Tickets"
-          color="bg-park-orange text-white"
+    <div
+      ref={arenaRef}
+      className={cn(
+        'border-park-orange/20 relative border-b',
+        'from-park-orange/9 via-park-orange/2 to-background bg-linear-to-b',
+        'px-3 pt-2 pb-3 shadow-[inset_0_1px_0_0_oklch(0.99_0.02_85/0.6)]'
+      )}
+    >
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
           onClick={handleTicket}
-        />
-        <ArenaButton
-          icon={<Zap className="h-5 w-5" />}
-          label="Charge"
-          color="bg-park-yellow text-foreground"
-          onClick={handleBattery}
-        />
-        <ArenaButton
-          icon={<Paintbrush className="h-5 w-5" />}
-          label="Sweep"
-          color="bg-park-blue text-white"
-          onClick={handleClean}
-        />
-        <ArenaButton
-          icon={<Wrench className="h-5 w-5" />}
-          label="Tune-Up"
-          color="bg-park-purple text-white"
-          onClick={handleTuneUp}
-        />
+          className={cn(
+            'ticket-booth-btn group flex min-h-17 flex-col items-center justify-center gap-1 rounded-2xl px-3 py-3',
+            'from-park-orange to-park-orange/90 bg-linear-to-b text-white shadow-md select-none',
+            'ring-park-orange/25 cursor-pointer transition-[transform,box-shadow] duration-150',
+            'hover:shadow-lg hover:ring-2 active:scale-[0.97]',
+            critPulse && 'arena-crit-pulse'
+          )}
+        >
+          <div className="flex items-center gap-2 drop-shadow-sm">
+            <DollarSign className="h-6 w-6 transition-transform duration-200 group-active:scale-110" />
+            <span className="text-sm font-bold tracking-tight">Tickets</span>
+            <Sparkles className="h-5 w-5 opacity-90 transition-transform duration-300 group-hover:rotate-12" />
+          </div>
+          <span className="text-park-cream text-[10px] font-medium opacity-90">
+            Tap fast for combo · rare crits · watch for golden tickets
+          </span>
+        </button>
       </div>
+
+      {golden.visible && (
+        <button
+          type="button"
+          onClick={() => collectGoldenTicket()}
+          className="golden-ticket-btn border-park-yellow bg-card absolute top-2 right-4 z-10 flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 shadow-lg select-none"
+          aria-label="Collect golden ticket"
+        >
+          <span className="text-2xl leading-none" role="img" aria-hidden>
+            {GOLDEN_EMOJI[golden.variant % GOLDEN_EMOJI.length]}
+          </span>
+          <div className="bg-muted mt-1 h-1 w-10 overflow-hidden rounded-full">
+            <div
+              className="bg-park-yellow h-full rounded-full transition-[width] duration-1000 ease-linear"
+              style={{ width: `${Math.min(100, goldenProgress * 100)}%` }}
+            />
+          </div>
+        </button>
+      )}
 
       {floats.map((f) => (
         <span
           key={f.id}
-          className="arena-feedback text-park-green"
+          className={cn(
+            'arena-feedback pointer-events-none absolute text-sm font-bold',
+            f.variant === 'crit' && 'text-park-yellow drop-shadow-sm',
+            f.variant === 'combo' && 'text-park-orange',
+            f.variant === 'cash' && 'text-park-green'
+          )}
           style={{ left: f.x, top: f.y, transform: 'translateX(-50%)' }}
         >
           {f.text}
@@ -115,29 +145,5 @@ const ActionArena: React.FC = memo(() => {
 });
 
 ActionArena.displayName = 'ActionArena';
-
-interface ArenaButtonProps {
-  icon: React.ReactNode;
-  label: string;
-  color: string;
-  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
-}
-
-const ArenaButton: React.FC<ArenaButtonProps> = memo(({ icon, label, color, onClick }) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      'flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5',
-      'cursor-pointer transition-all duration-150 select-none',
-      'shadow-sm hover:shadow-md active:scale-90',
-      color
-    )}
-  >
-    {icon}
-    <span className="text-[10px] font-semibold">{label}</span>
-  </button>
-));
-
-ArenaButton.displayName = 'ArenaButton';
 
 export default ActionArena;

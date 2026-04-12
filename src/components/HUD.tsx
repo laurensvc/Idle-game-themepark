@@ -3,8 +3,8 @@ import { selectIncomePerTick, selectTotalVisitors, useGameStore } from '@/store/
 import { Heart, Settings, Sparkles, Users } from 'lucide-react';
 import { memo, useState } from 'react';
 import AudioSettingsSheet from './AudioSettingsSheet';
+import BuffBar from './BuffBar';
 import CountUp from './CountUp';
-import ParkBatteryBar from './ParkBatteryBar';
 
 const HUD: React.FC = memo(() => {
   const [audioOpen, setAudioOpen] = useState(false);
@@ -16,8 +16,11 @@ const HUD: React.FC = memo(() => {
   return (
     <header className="flex flex-col gap-2 px-3 pt-3 pb-2">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className="text-lg" role="img" aria-label="money">
+        <div
+          id="money-fly-target"
+          className="bg-park-orange/8 ring-park-orange/15 flex items-center gap-1.5 rounded-xl px-2 py-1 ring-1"
+        >
+          <span className="text-lg leading-none" role="img" aria-label="money">
             💰
           </span>
           <CountUp value={money} format={formatMoney} className="text-park-orange text-xl font-bold tabular-nums" />
@@ -49,7 +52,7 @@ const HUD: React.FC = memo(() => {
 
       <AudioSettingsSheet open={audioOpen} onOpenChange={setAudioOpen} />
 
-      <ParkBatteryBar />
+      <BuffBar />
 
       {incomePerTick > 0 && (
         <div className="text-park-green flex items-center justify-center gap-1 text-xs">

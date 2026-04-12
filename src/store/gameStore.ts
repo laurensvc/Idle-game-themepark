@@ -1,10 +1,22 @@
 import { playGameSfx } from '@/audio/soundManager';
 import { BALANCE } from '@/data/balance';
-import { RIDE_DEFINITIONS, getLevelUpCost, getRideDefinition } from '@/data/rides';
+import { getPathUpgradeDefinition, getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
+import { RIDE_DEFINITIONS, getRideDefinition } from '@/data/rides';
 import { UPGRADE_DEFINITIONS } from '@/data/upgrades';
 import { AUDIO_STORAGE_KEY, loadPersistedAudioSettings } from '@/lib/audioStorage';
 import { clamp, randomInt } from '@/lib/utils';
-import type { AudioSettings, GameState, GameStore, RideInstance, Visitor, VisitorType } from '@/types/game';
+import type {
+  ActiveBuff,
+  AudioSettings,
+  GameState,
+  GameStore,
+  GoldenTicketState,
+  PurchasedUpgrade,
+  RideInstance,
+  TicketBoothResult,
+  Visitor,
+  VisitorType,
+} from '@/types/game';
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -13,17 +25,52 @@ const VISITOR_TYPES: VisitorType[] = ['family', 'thrill_seeker', 'child', 'elder
 let nextRideInstanceId = 1;
 let nextVisitorId = 1;
 let nextNotificationId = 1;
+let nextBuffId = 1;
+
+const getUpgradeIncomeMultiplier = (upgrades: PurchasedUpgrade[]): number => {
+  let incomeMult = 1;
+  for (let i = 0; i < upgrades.length; i++) {
+    const def = UPGRADE_DEFINITIONS.find((d) => d.id === upgrades[i].upgradeId);
+    if (!def || def.effect.type !== 'income_boost') continue;
+    incomeMult += def.effect.value;
+  }
+  return incomeMult;
+};
+
+/** Active buffs multiply per stack of the same kind. */
+const getRideIncomeBuffMultiplier = (activeBuffs: ActiveBuff[]): number => {
+  let m = 1;
+  for (let i = 0; i < activeBuffs.length; i++) {
+    if (activeBuffs[i].kind === 'ride_income') m *= activeBuffs[i].magnitude;
+  }
+  return m;
+};
+
+const getVisitorSpawnBuffMultiplier = (activeBuffs: ActiveBuff[]): number => {
+  let m = 1;
+  for (let i = 0; i < activeBuffs.length; i++) {
+    if (activeBuffs[i].kind === 'visitor_spawn') m *= activeBuffs[i].magnitude;
+  }
+  return m;
+};
+
+const getTicketCashBuffMultiplier = (activeBuffs: ActiveBuff[]): number => {
+  let m = 1;
+  for (let i = 0; i < activeBuffs.length; i++) {
+    if (activeBuffs[i].kind === 'ticket_cash') m *= activeBuffs[i].magnitude;
+  }
+  return m;
+};
+
+const scheduleGoldenSpawn = (fromTick: number): number =>
+  fromTick + randomInt(BALANCE.goldenSpawnMinTicks, BALANCE.goldenSpawnMaxTicks);
 
 const createRideInstance = (definitionId: string): RideInstance => ({
   id: `ride_${nextRideInstanceId++}`,
   definitionId,
-  status: 'idle',
-  level: 1,
   ticksSincePurchase: 0,
-  breakdownCooldown: BALANCE.breakdownCooldownTicks,
-  repairProgress: 0,
-  dirt: 0,
   visitors: 0,
+  purchasedPathIds: [],
 });
 
 const saveAudioSettings = (settings: AudioSettings): void => {
@@ -34,12 +81,19 @@ const saveAudioSettings = (settings: AudioSettings): void => {
   }
 };
 
+const initialGoldenTicket = (): GoldenTicketState => ({
+  visible: false,
+  expiresAtTick: 0,
+  spawnAfterTick: scheduleGoldenSpawn(0),
+  variant: 0,
+});
+
+const starterRide = createRideInstance('ferris_wheel');
+
 const initialState: GameState = {
   money: BALANCE.startingMoney,
-  rides: [createRideInstance('ferris_wheel')],
-  parkBattery: BALANCE.startingBattery,
+  rides: [starterRide],
   happiness: BALANCE.startingHappiness,
-  parkDirt: 0,
   visitors: [],
   upgrades: [],
   notifications: [],
@@ -47,7 +101,11 @@ const initialState: GameState = {
   totalMoneyEarned: 0,
   totalVisitorsServed: 0,
   audioSettings: loadPersistedAudioSettings(),
-  selectedRideId: null,
+  selectedRideId: starterRide.id,
+  activeBuffs: [],
+  goldenTicket: initialGoldenTicket(),
+  ticketComboCount: 0,
+  lastTicketClickMs: 0,
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -57,24 +115,48 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set((state) => {
       const newTickCount = state.tickCount + 1;
       let money = state.money;
-      let parkBattery = state.parkBattery;
-      let parkDirt = state.parkDirt;
       let totalMoneyEarned = state.totalMoneyEarned;
       let totalVisitorsServed = state.totalVisitorsServed;
       const rides = state.rides;
       const notifications = state.notifications;
       const upgrades = state.upgrades;
 
-      const hasAutoRepair = upgrades.some((u) => u.upgradeId === 'auto_repair');
-      const hasJanitor = upgrades.some((u) => u.upgradeId === 'janitor_1');
-      const hasAutoClean = upgrades.some((u) => u.upgradeId === 'auto_clean');
-      const hasBatteryUpgrade = upgrades.some((u) => u.upgradeId === 'battery_upgrade');
+      const activeBuffsFiltered: ActiveBuff[] = [];
+      for (let i = 0; i < state.activeBuffs.length; i++) {
+        const b = state.activeBuffs[i];
+        if (b.expiresAtTick > newTickCount) activeBuffsFiltered.push(b);
+      }
+      const rideIncomeBuffMult = getRideIncomeBuffMultiplier(activeBuffsFiltered);
+      const visitorSpawnBuffMult = getVisitorSpawnBuffMultiplier(activeBuffsFiltered);
+
+      let goldenTicket: GoldenTicketState = { ...state.goldenTicket };
+      if (goldenTicket.visible && newTickCount >= goldenTicket.expiresAtTick) {
+        goldenTicket = {
+          visible: false,
+          expiresAtTick: 0,
+          spawnAfterTick: scheduleGoldenSpawn(newTickCount),
+          variant: goldenTicket.variant,
+        };
+        playGameSfx('warning');
+        notifications.push({
+          id: `notif_${nextNotificationId++}`,
+          message: 'Golden ticket expired!',
+          type: 'warning',
+          tick: newTickCount,
+        });
+      } else if (!goldenTicket.visible && newTickCount >= goldenTicket.spawnAfterTick) {
+        goldenTicket = {
+          visible: true,
+          expiresAtTick: newTickCount + BALANCE.goldenLifetimeTicks,
+          spawnAfterTick: goldenTicket.spawnAfterTick,
+          variant: randomInt(0, 2),
+        };
+      }
 
       let happinessBoost = 0;
       let visitorAttractionMult = 1;
       let capacityMult = 1;
-      let incomeMult = 1;
-      let breakdownMult = 1;
+      let incomeMult = getUpgradeIncomeMultiplier(upgrades);
 
       for (let i = 0; i < upgrades.length; i++) {
         const def = UPGRADE_DEFINITIONS.find((d) => d.id === upgrades[i].upgradeId);
@@ -90,124 +172,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
             capacityMult += def.effect.value;
             break;
           case 'income_boost':
-            incomeMult += def.effect.value;
-            break;
-          case 'breakdown_reduction':
-            breakdownMult *= 1 - def.effect.value;
             break;
         }
       }
 
-      const batteryDrainMult = hasBatteryUpgrade ? 1 - BALANCE.batteryUpgradeReduction : 1;
+      const incomeMultTotal = incomeMult * rideIncomeBuffMult;
+      visitorAttractionMult *= visitorSpawnBuffMult;
 
-      let operatingCount = 0;
-      let brokenCount = 0;
-      let totalRideDirt = 0;
-
-      const batteryAtTickStart = state.parkBattery;
+      const operatingCount = rides.length;
 
       for (let i = 0; i < rides.length; i++) {
         const ride = rides[i];
         ride.ticksSincePurchase++;
 
-        if (ride.breakdownCooldown > 0) {
-          ride.breakdownCooldown--;
-        }
-
         const def = getRideDefinition(ride.definitionId);
         if (!def) continue;
 
-        if (ride.status === 'operating') {
-          parkBattery -= BALANCE.batteryDrainPerRide * batteryDrainMult;
+        const pathM = getRidePathStatMultipliers(ride.purchasedPathIds, ride.definitionId);
+        const capacity = Math.round(def.baseCapacity * pathM.capacity * capacityMult);
+        const happinessFactor = state.happiness / 100;
+        ride.visitors = Math.round(capacity * happinessFactor);
 
-          if (parkBattery <= 0) {
-            parkBattery = 0;
-            ride.status = 'idle';
-            ride.visitors = 0;
-            continue;
-          }
-
-          operatingCount++;
-
-          const capacity = Math.round(
-            def.baseCapacity * (1 + BALANCE.capacityMultPerLevel * (ride.level - 1)) * capacityMult
-          );
-          const happinessFactor = state.happiness / 100;
-          const dirtPenalty = Math.max(0, 1 - ride.dirt / 100);
-          ride.visitors = Math.round(capacity * happinessFactor * dirtPenalty);
-
-          const income =
-            ride.visitors * def.baseIncome * (1 + BALANCE.incomeMultPerLevel * (ride.level - 1)) * incomeMult;
-          money += income;
-          totalMoneyEarned += income;
-
-          ride.dirt = Math.min(100, ride.dirt + def.dirtRate);
-
-          if (ride.breakdownCooldown <= 0 && Math.random() < def.breakdownChance * breakdownMult) {
-            ride.status = 'broken';
-            ride.visitors = 0;
-            ride.breakdownCooldown = BALANCE.breakdownCooldownTicks;
-            playGameSfx('breakdown');
-            notifications.push({
-              id: `notif_${nextNotificationId++}`,
-              message: `${def.emoji} ${def.name} broke down!`,
-              type: 'error',
-              tick: newTickCount,
-            });
-
-            if (hasAutoRepair) {
-              ride.status = 'repairing';
-              ride.repairProgress = 0;
-            }
-          }
-        } else if (ride.status === 'repairing') {
-          ride.repairProgress++;
-          if (ride.repairProgress >= def.repairTime) {
-            ride.status = 'operating';
-            ride.repairProgress = 0;
-            ride.breakdownCooldown = BALANCE.breakdownCooldownTicks;
-            playGameSfx('repair_done');
-            notifications.push({
-              id: `notif_${nextNotificationId++}`,
-              message: `${def.emoji} ${def.name} repaired!`,
-              type: 'success',
-              tick: newTickCount,
-            });
-          }
-        } else if (ride.status === 'broken' && hasAutoRepair) {
-          ride.status = 'repairing';
-          ride.repairProgress = 0;
-        }
-
-        if (ride.status === 'broken') {
-          brokenCount++;
-        }
-
-        totalRideDirt += ride.dirt;
-
-        if (hasAutoClean) {
-          ride.dirt = Math.max(0, ride.dirt - BALANCE.autoCleanRideRate);
-        }
+        const income = ride.visitors * def.baseIncome * pathM.income * incomeMultTotal;
+        money += income;
+        totalMoneyEarned += income;
       }
 
-      if (batteryAtTickStart > 0 && parkBattery <= 0) {
-        playGameSfx('warning');
-      }
-
-      parkDirt += BALANCE.dirtBaseRate + BALANCE.dirtPerOperatingRide * operatingCount;
-      if (hasJanitor) {
-        parkDirt = Math.max(0, parkDirt - BALANCE.janitorCleanRate);
-      }
-      parkDirt = clamp(parkDirt, 0, 100);
-
-      const avgRideDirt = rides.length > 0 ? totalRideDirt / rides.length : 0;
       const happinessTarget = clamp(
-        BALANCE.happinessBaseTarget -
-          parkDirt * 0.3 -
-          avgRideDirt * 0.2 +
-          brokenCount * BALANCE.happinessPerBrokenRide +
-          operatingCount * BALANCE.happinessPerOperatingRide +
-          happinessBoost,
+        BALANCE.happinessBaseTarget + operatingCount * BALANCE.happinessPerOperatingRide + happinessBoost,
         0,
         100
       );
@@ -248,14 +240,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return {
         money,
         rides: [...rides],
-        parkBattery,
-        parkDirt,
         happiness,
         visitors,
         tickCount: newTickCount,
         totalMoneyEarned,
         totalVisitorsServed,
         notifications: [...notifications],
+        activeBuffs: activeBuffsFiltered,
+        goldenTicket,
       };
     });
   },
@@ -264,6 +256,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     const def = RIDE_DEFINITIONS.find((r) => r.id === definitionId);
     if (!def || state.money < def.baseCost) return;
+    if (state.rides.some((r) => r.definitionId === definitionId)) return;
 
     playGameSfx('purchase');
     set({
@@ -281,84 +274,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  levelUpRide: (rideId: string) => {
+  purchaseRidePathUpgrade: (rideId: string, pathUpgradeId: string) => {
     const state = get();
     const rideIndex = state.rides.findIndex((r) => r.id === rideId);
     if (rideIndex === -1) return;
     const ride = state.rides[rideIndex];
-    if (ride.level >= BALANCE.maxRideLevel) return;
-    const def = getRideDefinition(ride.definitionId);
-    if (!def) return;
-    const cost = getLevelUpCost(def.baseLevelUpCost, ride.level);
-    if (state.money < cost) return;
+    const pathDef = getPathUpgradeDefinition(pathUpgradeId);
+    if (!pathDef || pathDef.rideId !== ride.definitionId) return;
+    if (ride.purchasedPathIds.includes(pathUpgradeId)) return;
+    if (pathDef.prerequisiteId && !ride.purchasedPathIds.includes(pathDef.prerequisiteId)) return;
+    if (state.money < pathDef.cost) return;
+
+    const rideDef = getRideDefinition(ride.definitionId);
+    if (!rideDef) return;
 
     playGameSfx('upgrade');
     const newRides = [...state.rides];
-    newRides[rideIndex] = { ...ride, level: ride.level + 1 };
+    newRides[rideIndex] = { ...ride, purchasedPathIds: [...ride.purchasedPathIds, pathUpgradeId] };
     set({
-      money: state.money - cost,
+      money: state.money - pathDef.cost,
       rides: newRides,
       notifications: [
         ...state.notifications,
         {
           id: `notif_${nextNotificationId++}`,
-          message: `${def.emoji} ${def.name} leveled up to ${ride.level + 1}!`,
+          message: `${rideDef.emoji} ${pathDef.name} unlocked!`,
           type: 'success',
           tick: state.tickCount,
         },
       ],
-    });
-  },
-
-  toggleRide: (rideId: string) => {
-    const state = get();
-    const rideIndex = state.rides.findIndex((r) => r.id === rideId);
-    if (rideIndex === -1) return;
-    const ride = state.rides[rideIndex];
-    if (ride.status === 'broken' || ride.status === 'repairing') return;
-
-    const newStatus = ride.status === 'idle' ? 'operating' : 'idle';
-    const newRides = [...state.rides];
-    newRides[rideIndex] = {
-      ...ride,
-      status: newStatus,
-      visitors: newStatus === 'idle' ? 0 : ride.visitors,
-    };
-    playGameSfx('ui_toggle');
-    set({ rides: newRides });
-  },
-
-  repairRide: (rideId: string) => {
-    const state = get();
-    const rideIndex = state.rides.findIndex((r) => r.id === rideId);
-    if (rideIndex === -1) return;
-    const ride = state.rides[rideIndex];
-    if (ride.status !== 'broken') return;
-
-    playGameSfx('repair_start');
-    const newRides = [...state.rides];
-    newRides[rideIndex] = { ...ride, status: 'repairing', repairProgress: 0 };
-    set({ rides: newRides });
-  },
-
-  rechargeBattery: () => {
-    playGameSfx('ui_click');
-    set((state) => ({
-      parkBattery: clamp(state.parkBattery + BALANCE.batteryRechargeAmount, 0, 100),
-    }));
-  },
-
-  cleanPark: () => {
-    playGameSfx('ui_toggle');
-    set((state) => {
-      const rides = state.rides.map((r) => ({
-        ...r,
-        dirt: Math.max(0, r.dirt - BALANCE.cleanSweepAmount),
-      }));
-      return {
-        parkDirt: Math.max(0, state.parkDirt - BALANCE.cleanSweepAmount),
-        rides,
-      };
     });
   },
 
@@ -385,23 +329,114 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  ticketBooth: () => {
-    const amount = randomInt(BALANCE.ticketBoothMin, BALANCE.ticketBoothMax);
-    playGameSfx('cash_collect');
-    set((state) => ({
+  ticketBooth: (clickMs: number): TicketBoothResult => {
+    const state = get();
+    const activeBuffs = state.activeBuffs.filter((b) => b.expiresAtTick > state.tickCount);
+    const ticketBuffMult = getTicketCashBuffMultiplier(activeBuffs);
+
+    const comboExpired = clickMs - state.lastTicketClickMs > BALANCE.comboWindowMs;
+    const combo = comboExpired ? 1 : Math.min(state.ticketComboCount + 1, BALANCE.comboMaxStacks);
+
+    const base = randomInt(BALANCE.ticketBoothMin, BALANCE.ticketBoothMax);
+    const comboMult = 1 + (combo - 1) * BALANCE.comboBonusPerStack;
+    const isCrit = Math.random() < BALANCE.critChance;
+    const critMult = isCrit ? BALANCE.critIncomeMultiplier : 1;
+    const amount = Math.max(1, Math.round(base * comboMult * critMult * ticketBuffMult));
+
+    if (isCrit) playGameSfx('crit_hit');
+    else playGameSfx('cash_collect');
+
+    set({
       money: state.money + amount,
       totalMoneyEarned: state.totalMoneyEarned + amount,
-    }));
-    return amount;
+      ticketComboCount: combo,
+      lastTicketClickMs: clickMs,
+      activeBuffs,
+    });
+    return { amount, isCrit, comboLevel: combo };
   },
 
-  tuneUp: () => {
-    playGameSfx('ui_click');
-    set((state) => ({
-      money: state.money + BALANCE.tuneUpCash,
-      totalMoneyEarned: state.totalMoneyEarned + BALANCE.tuneUpCash,
-      happiness: clamp(state.happiness + BALANCE.tuneUpHappiness, 0, 100),
-    }));
+  collectGoldenTicket: () => {
+    const state = get();
+    if (!state.goldenTicket.visible) return;
+
+    playGameSfx('golden_ticket');
+    const tick = state.tickCount;
+    const roll = Math.random();
+    let moneyDelta = 0;
+    let happyDelta = 0;
+    const newBuffs = state.activeBuffs.filter((b) => b.expiresAtTick > tick);
+    const notifs = [...state.notifications];
+
+    const pushBuff = (kind: ActiveBuff['kind'], durationTicks: number, magnitude: number): void => {
+      newBuffs.push({
+        id: `buff_${nextBuffId++}`,
+        kind,
+        expiresAtTick: tick + durationTicks,
+        magnitude,
+      });
+    };
+
+    if (roll < 0.3) {
+      moneyDelta = randomInt(BALANCE.goldenMoneyMin, BALANCE.goldenMoneyMax);
+      notifs.push({
+        id: `notif_${nextNotificationId++}`,
+        message: `🎫 Golden payout: +$${moneyDelta}!`,
+        type: 'success',
+        tick,
+      });
+    } else if (roll < 0.52) {
+      pushBuff('ride_income', BALANCE.buffRideIncomeFrenzyTicks, BALANCE.buffRideIncomeFrenzyMult);
+      notifs.push({
+        id: `notif_${nextNotificationId++}`,
+        message: `⚡ Ride frenzy: ${BALANCE.buffRideIncomeFrenzyMult}× income for a bit!`,
+        type: 'success',
+        tick,
+      });
+    } else if (roll < 0.72) {
+      pushBuff('ticket_cash', BALANCE.buffTicketRushTicks, BALANCE.buffTicketRushMult);
+      notifs.push({
+        id: `notif_${nextNotificationId++}`,
+        message: `🎟️ Ticket rush: ${BALANCE.buffTicketRushMult}× booth cash!`,
+        type: 'success',
+        tick,
+      });
+    } else if (roll < 0.87) {
+      pushBuff('visitor_spawn', BALANCE.buffVisitorSurgeTicks, BALANCE.buffVisitorSurgeMult);
+      notifs.push({
+        id: `notif_${nextNotificationId++}`,
+        message: `👥 Visitor surge: bigger crowds incoming!`,
+        type: 'success',
+        tick,
+      });
+    } else {
+      happyDelta = BALANCE.goldenHappinessBump;
+      moneyDelta = randomInt(BALANCE.goldenVipTipMin, BALANCE.goldenVipTipMax);
+      notifs.push({
+        id: `notif_${nextNotificationId++}`,
+        message: `🌟 VIP visit: +$${moneyDelta} tips + mood boost!`,
+        type: 'success',
+        tick,
+      });
+    }
+
+    while (notifs.length > BALANCE.maxNotifications) {
+      notifs.shift();
+    }
+
+    set({
+      money: state.money + moneyDelta,
+      totalMoneyEarned: state.totalMoneyEarned + moneyDelta,
+      happiness: clamp(state.happiness + happyDelta, 0, 100),
+      activeBuffs: newBuffs,
+      goldenTicket: {
+        visible: false,
+        expiresAtTick: 0,
+        spawnAfterTick: scheduleGoldenSpawn(tick),
+        variant: state.goldenTicket.variant,
+      },
+      notifications: notifs,
+    });
   },
 
   selectRide: (rideId: string | null) => {
@@ -433,23 +468,36 @@ export const useGameSelector = <T>(selector: (state: GameStore) => T): T => useG
 
 export const selectMoney = (s: GameStore): number => s.money;
 export const selectHappiness = (s: GameStore): number => s.happiness;
-export const selectBattery = (s: GameStore): number => s.parkBattery;
 export const selectRides = (s: GameStore): RideInstance[] => s.rides;
 export const selectVisitors = (s: GameStore): Visitor[] => s.visitors;
-export const selectParkDirt = (s: GameStore): number => s.parkDirt;
 export const selectTickCount = (s: GameStore): number => s.tickCount;
 
 export const selectIncomePerTick = (s: GameStore): number => {
+  const activeBuffs = s.activeBuffs.filter((b) => b.expiresAtTick > s.tickCount);
+  const incomeMultTotal = getUpgradeIncomeMultiplier(s.upgrades) * getRideIncomeBuffMultiplier(activeBuffs);
   let income = 0;
   for (let i = 0; i < s.rides.length; i++) {
     const ride = s.rides[i];
-    if (ride.status !== 'operating') continue;
     const def = getRideDefinition(ride.definitionId);
     if (!def) continue;
-    income += ride.visitors * def.baseIncome * (1 + BALANCE.incomeMultPerLevel * (ride.level - 1));
+    const pathM = getRidePathStatMultipliers(ride.purchasedPathIds, ride.definitionId);
+    income += ride.visitors * def.baseIncome * pathM.income * incomeMultTotal;
   }
   return income;
 };
+
+/**
+ * Primitive snapshot for buff UI. Returning a new array from a selector breaks
+ * useSyncExternalStore (e.g. React Strict Mode double getSnapshot) because each
+ * filter() call is a new reference even when data is unchanged.
+ */
+export const selectActiveBuffsSnapshot = (s: GameStore): string => {
+  const tick = s.tickCount;
+  const buffs = s.activeBuffs.filter((b) => b.expiresAtTick > tick);
+  return JSON.stringify({ tick, buffs });
+};
+
+export const selectGoldenTicket = (s: GameStore): GoldenTicketState => s.goldenTicket;
 
 export const selectTotalVisitors = (s: GameStore): number => {
   let total = 0;
@@ -459,10 +507,4 @@ export const selectTotalVisitors = (s: GameStore): number => {
   return total;
 };
 
-export const selectOperatingCount = (s: GameStore): number => {
-  let count = 0;
-  for (let i = 0; i < s.rides.length; i++) {
-    if (s.rides[i].status === 'operating') count++;
-  }
-  return count;
-};
+export const selectOperatingCount = (s: GameStore): number => s.rides.length;

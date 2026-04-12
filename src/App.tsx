@@ -1,16 +1,17 @@
 import { configureSoundSettings, playGameSfx } from '@/audio/soundManager';
 import ActionArena from '@/components/ActionArena';
+import CoinFlyLayer, { type CoinFlyItem } from '@/components/CoinFlyLayer';
 import HUD from '@/components/HUD';
 import ParkView from '@/components/ParkView';
 import RideInspector from '@/components/RideInspector';
+import ShopPanel from '@/components/ShopPanel';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/sonner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { startNotificationSync } from '@/lib/syncNotificationsToSonner';
 import { useGameStore } from '@/store/gameStore';
-import { BarChart3, Landmark, ShoppingCart, Users } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect } from 'react';
+import { BarChart3, Users } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
-const ShopPanel = lazy(() => import('@/components/ShopPanel'));
 const VisitorPanel = lazy(() => import('@/components/VisitorPanel'));
 const StatsPanel = lazy(() => import('@/components/StatsPanel'));
 
@@ -23,6 +24,45 @@ const TabFallback: React.FC = () => (
 const App: React.FC = () => {
   const tick = useGameStore((s) => s.tick);
   const audioSettings = useGameStore((s) => s.audioSettings);
+  const rides = useGameStore((s) => s.rides);
+  const selectedRideId = useGameStore((s) => s.selectedRideId);
+  const selectRide = useGameStore((s) => s.selectRide);
+  const [coinFlies, setCoinFlies] = useState<CoinFlyItem[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetKind, setSheetKind] = useState<'visitors' | 'stats'>('visitors');
+  const nextCoinFlyId = useRef(0);
+
+  const handleTicketCashFly = useCallback((ticketButton: HTMLElement, opts: { isCrit: boolean }) => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    const count = opts.isCrit ? 3 : 1;
+    for (let i = 0; i < count; i++) {
+      const jitterX = (i - (count - 1) / 2) * 16;
+      const jitterY = i * 5;
+      window.setTimeout(() => {
+        const target = document.getElementById('money-fly-target');
+        if (!target) return;
+        const fr = ticketButton.getBoundingClientRect();
+        const tr = target.getBoundingClientRect();
+        const id = nextCoinFlyId.current++;
+        setCoinFlies((prev) => [
+          ...prev,
+          {
+            id,
+            sx: fr.left + fr.width / 2 + jitterX,
+            sy: fr.top + fr.height / 2 + jitterY,
+            ex: tr.left + tr.width / 2,
+            ey: tr.top + tr.height / 2,
+          },
+        ]);
+      }, i * 55);
+    }
+  }, []);
+
+  const handleCoinFlyDone = useCallback((id: number) => {
+    setCoinFlies((prev) => prev.filter((f) => f.id !== id));
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(tick, 1000);
@@ -38,76 +78,104 @@ const App: React.FC = () => {
     return unsub;
   }, []);
 
+  useEffect(() => {
+    if (rides.length === 0) {
+      if (selectedRideId !== null) selectRide(null);
+      return;
+    }
+    const valid = selectedRideId !== null && rides.some((r) => r.id === selectedRideId);
+    if (!valid) selectRide(rides[0].id);
+  }, [rides, selectedRideId, selectRide]);
+
   const handleUserGesture = useCallback(() => {
     import('@/audio/soundManager').then((m) => m.retryThemeMusicAfterUserGesture());
   }, []);
 
+  const openAux = useCallback((kind: 'visitors' | 'stats') => {
+    playGameSfx('ui_toggle');
+    setSheetKind(kind);
+    setSheetOpen(true);
+  }, []);
+
+  const columnChrome =
+    'border-border/60 bg-card/45 flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border shadow-sm';
+
   return (
     <div onClick={handleUserGesture}>
-      <div className="bg-background text-foreground mx-auto flex h-dvh max-w-md flex-col overflow-hidden">
-        <HUD />
+      <div className="bg-background text-foreground mx-auto flex h-dvh w-full max-w-[1600px] flex-col overflow-hidden">
+        <div className="shrink-0 px-3 pt-3 sm:px-4">
+          <HUD />
+        </div>
+        <div className="shrink-0 px-3 sm:px-4">
+          <ActionArena onTicketCashFly={handleTicketCashFly} />
+        </div>
+        <CoinFlyLayer items={coinFlies} onItemDone={handleCoinFlyDone} />
 
-        <Tabs
-          defaultValue="park"
-          className="flex min-h-0 flex-1 flex-col"
-          onValueChange={() => {
-            playGameSfx('ui_toggle');
-          }}
-        >
-          <TabsContent value="park" className="mt-0 flex min-h-0 flex-1 flex-col">
-            <ParkView />
-          </TabsContent>
-          <TabsContent value="shop" className="mt-0 flex min-h-0 flex-1 flex-col">
-            <Suspense fallback={<TabFallback />}>
+        <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 px-3 pb-2 sm:px-4 lg:grid-cols-3 lg:gap-4">
+          <section className={columnChrome}>
+            <header className="border-border/60 shrink-0 border-b px-3 py-2.5">
+              <h2 className="text-sm font-bold tracking-tight">Your rides</h2>
+              <p className="text-muted-foreground text-xs">Click a ride to see upgrades in the center column.</p>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <ParkView />
+            </div>
+          </section>
+
+          <section className={columnChrome}>
+            <header className="border-border/60 shrink-0 border-b px-3 py-2.5">
+              <h2 className="text-sm font-bold tracking-tight">Current ride</h2>
+              <p className="text-muted-foreground text-xs">Stats and path upgrades for the selected ride.</p>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <RideInspector />
+            </div>
+          </section>
+
+          <section className={columnChrome}>
+            <header className="border-border/60 shrink-0 border-b px-3 py-2.5">
+              <h2 className="text-sm font-bold tracking-tight">Shop</h2>
+              <p className="text-muted-foreground text-xs">New rides and park-wide upgrades.</p>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col">
               <ShopPanel />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="visitors" className="mt-0 flex min-h-0 flex-1 flex-col">
-            <Suspense fallback={<TabFallback />}>
-              <VisitorPanel />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="stats" className="mt-0 flex min-h-0 flex-1 flex-col">
-            <Suspense fallback={<TabFallback />}>
-              <StatsPanel />
-            </Suspense>
-          </TabsContent>
+            </div>
+          </section>
+        </main>
 
-          <ActionArena />
+        <footer className="border-border/60 bg-card/30 flex shrink-0 items-center justify-center gap-2 border-t px-3 py-2">
+          <button
+            type="button"
+            onClick={() => openAux('visitors')}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/80 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+          >
+            <Users className="h-4 w-4" />
+            Visitors
+          </button>
+          <button
+            type="button"
+            onClick={() => openAux('stats')}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/80 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Stats
+          </button>
+        </footer>
 
-          <TabsList className="bg-card h-14 w-full gap-0 rounded-none border-t px-0">
-            <TabsTrigger
-              value="park"
-              className="h-full flex-1 flex-col gap-0.5 rounded-none data-[state=active]:shadow-none"
-            >
-              <Landmark className="h-5 w-5" />
-              <span className="text-[10px]">Park</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="shop"
-              className="h-full flex-1 flex-col gap-0.5 rounded-none data-[state=active]:shadow-none"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              <span className="text-[10px]">Shop</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="visitors"
-              className="h-full flex-1 flex-col gap-0.5 rounded-none data-[state=active]:shadow-none"
-            >
-              <Users className="h-5 w-5" />
-              <span className="text-[10px]">Visitors</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="stats"
-              className="h-full flex-1 flex-col gap-0.5 rounded-none data-[state=active]:shadow-none"
-            >
-              <BarChart3 className="h-5 w-5" />
-              <span className="text-[10px]">Stats</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+            <SheetHeader className="border-border/60 shrink-0 border-b px-6 py-4 pr-12 text-left">
+              <SheetTitle>{sheetKind === 'visitors' ? 'Visitors' : 'Stats'}</SheetTitle>
+            </SheetHeader>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <Suspense fallback={<TabFallback />}>
+                {sheetKind === 'visitors' && <VisitorPanel />}
+                {sheetKind === 'stats' && <StatsPanel />}
+              </Suspense>
+            </div>
+          </SheetContent>
+        </Sheet>
 
-        <RideInspector />
         <Toaster />
       </div>
     </div>

@@ -1,4 +1,3 @@
-import { BALANCE } from '@/data/balance';
 import type { RideDefinition } from '@/types/game';
 
 export const RIDE_DEFINITIONS: RideDefinition[] = [
@@ -9,10 +8,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 100,
     baseIncome: 1,
     baseCapacity: 8,
-    breakdownChance: 0.02,
-    repairTime: 8,
-    baseLevelUpCost: 80,
-    dirtRate: 0.1,
     category: 'gentle',
   },
   {
@@ -22,10 +17,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 200,
     baseIncome: 2,
     baseCapacity: 10,
-    breakdownChance: 0.04,
-    repairTime: 6,
-    baseLevelUpCost: 120,
-    dirtRate: 0.15,
     category: 'family',
   },
   {
@@ -35,10 +26,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 300,
     baseIncome: 3,
     baseCapacity: 12,
-    breakdownChance: 0.025,
-    repairTime: 7,
-    baseLevelUpCost: 160,
-    dirtRate: 0.1,
     category: 'gentle',
   },
   {
@@ -48,10 +35,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 400,
     baseIncome: 4,
     baseCapacity: 14,
-    breakdownChance: 0.02,
-    repairTime: 10,
-    baseLevelUpCost: 200,
-    dirtRate: 0.08,
     category: 'family',
   },
   {
@@ -61,10 +44,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 500,
     baseIncome: 5,
     baseCapacity: 6,
-    breakdownChance: 0.03,
-    repairTime: 12,
-    baseLevelUpCost: 280,
-    dirtRate: 0.25,
     category: 'water',
   },
   {
@@ -74,10 +53,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 600,
     baseIncome: 6,
     baseCapacity: 10,
-    breakdownChance: 0.035,
-    repairTime: 10,
-    baseLevelUpCost: 350,
-    dirtRate: 0.12,
     category: 'thrill',
   },
   {
@@ -87,10 +62,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 700,
     baseIncome: 7,
     baseCapacity: 16,
-    breakdownChance: 0.03,
-    repairTime: 14,
-    baseLevelUpCost: 400,
-    dirtRate: 0.14,
     category: 'thrill',
   },
   {
@@ -100,10 +71,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 900,
     baseIncome: 9,
     baseCapacity: 7,
-    breakdownChance: 0.045,
-    repairTime: 16,
-    baseLevelUpCost: 500,
-    dirtRate: 0.1,
     category: 'thrill',
   },
   {
@@ -113,10 +80,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 1000,
     baseIncome: 10,
     baseCapacity: 9,
-    breakdownChance: 0.035,
-    repairTime: 12,
-    baseLevelUpCost: 600,
-    dirtRate: 0.3,
     category: 'water',
   },
   {
@@ -126,10 +89,6 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 1200,
     baseIncome: 13,
     baseCapacity: 10,
-    breakdownChance: 0.05,
-    repairTime: 18,
-    baseLevelUpCost: 750,
-    dirtRate: 0.15,
     category: 'thrill',
   },
   {
@@ -139,18 +98,8 @@ export const RIDE_DEFINITIONS: RideDefinition[] = [
     baseCost: 1500,
     baseIncome: 16,
     baseCapacity: 14,
-    breakdownChance: 0.06,
-    repairTime: 20,
-    baseLevelUpCost: 900,
-    dirtRate: 0.18,
     category: 'thrill',
   },
 ];
 
 export const getRideDefinition = (id: string): RideDefinition | undefined => RIDE_DEFINITIONS.find((r) => r.id === id);
-
-export const getLevelMultiplier = (level: number, base: number, perLevel: number): number =>
-  base * (1 + perLevel * (level - 1));
-
-export const getLevelUpCost = (baseCost: number, level: number): number =>
-  Math.round(baseCost * Math.pow(level, BALANCE.levelUpCostExponent));
