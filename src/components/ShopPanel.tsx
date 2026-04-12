@@ -1,162 +1,109 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RIDE_DEFINITIONS, getRideDefinition } from '@/data/rides';
-import { UPGRADE_DEFINITIONS, getUpgradeDefinition } from '@/data/upgrades';
-import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { RIDE_DEFINITIONS } from '@/data/rides';
+import { UPGRADE_DEFINITIONS } from '@/data/upgrades';
+import { cn, formatMoney } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
-import { CheckCircle, ChevronRight, Lock, ShoppingBag } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
+import { Lock, ShoppingCart } from 'lucide-react';
+import { memo } from 'react';
 
-const formatMoney = (amount: number): string => {
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;
-  return `$${amount}`;
-};
+const ShopPanel: React.FC = memo(() => {
+  const money = useGameStore((s) => s.money);
+  const buyRide = useGameStore((s) => s.buyRide);
+  const buyUpgrade = useGameStore((s) => s.buyUpgrade);
+  const purchasedUpgrades = useGameStore((s) => s.upgrades);
 
-const EFFECT_LABELS: Record<string, string> = {
-  auto_repair: '⚙ Auto-Repair',
-  capacity_boost: '👥 +Capacity',
-  income_boost: '💰 +Income',
-  breakdown_reduction: '🛡 -Breakdowns',
-  auto_clean: '🧹 Auto-Clean',
-  visitor_attraction: '📣 +Visitors',
-};
-
-export const ShopPanel = () => {
-  const { money, rides, purchasedUpgrades, buyRide, buyUpgrade } = useGameStore(
-    useShallow((s) => ({
-      money: s.money,
-      rides: s.rides,
-      purchasedUpgrades: s.purchasedUpgrades,
-      buyRide: s.buyRide,
-      buyUpgrade: s.buyUpgrade,
-    }))
-  );
-
-  const unlockedRideIds = new Set(rides.map((r) => r.definitionId));
-  const availableRides = RIDE_DEFINITIONS.filter((def) => !unlockedRideIds.has(def.id));
+  const ownedUpgradeIds = new Set(purchasedUpgrades.map((u) => u.upgradeId));
 
   return (
-    <div className="flex flex-col gap-4">
-      {availableRides.length > 0 && (
+    <ScrollArea className="flex-1">
+      <div className="space-y-4 px-3 pb-3">
         <section>
-          <div className="text-muted-foreground mb-2 flex items-center gap-2">
-            <ShoppingBag className="text-neon-orange size-4 shrink-0" aria-hidden />
-            <span className="text-sm font-semibold tracking-widest uppercase">Build Rides</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            {availableRides.map((def) => {
-              const canAfford = money >= def.unlockCost;
+          <h2 className="text-foreground mb-2 flex items-center gap-1.5 text-sm font-bold">
+            <ShoppingCart className="h-4 w-4" />
+            Rides
+          </h2>
+          <div className="grid gap-2">
+            {RIDE_DEFINITIONS.map((def) => {
+              const canAfford = money >= def.baseCost;
               return (
-                <Button
-                  key={def.id}
-                  variant="outline"
-                  disabled={!canAfford}
-                  onClick={() => buyRide(def.id)}
-                  className={cn(
-                    'h-auto min-h-20 w-full flex-col items-stretch gap-1 p-3 text-left whitespace-normal',
-                    canAfford && 'hover:border-neon-orange/50 hover:bg-neon-orange/5'
-                  )}
-                  aria-label={`Buy ${def.name} for ${formatMoney(def.unlockCost)}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{def.icon}</span>
-                      <div>
-                        <div className="text-base font-bold">{def.name}</div>
-                        <div className="text-muted-foreground mt-0.5 max-w-[11rem] truncate text-sm">
-                          {def.description}
-                        </div>
-                      </div>
+                <div key={def.id} className={cn('park-card flex items-center gap-3 p-3', !canAfford && 'opacity-60')}>
+                  <span className="shrink-0 text-2xl">{def.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold">{def.name}</div>
+                    <div className="text-muted-foreground text-xs">
+                      {def.baseIncome}/s income · {def.baseCapacity} cap
                     </div>
-                    <span
-                      className={cn('text-sm font-black', canAfford ? 'text-neon-orange' : 'text-muted-foreground')}
-                    >
-                      {formatMoney(def.unlockCost)}
-                    </span>
                   </div>
-                  <div className="mt-1 ml-9 flex items-center gap-0.5">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <div
-                        key={i}
-                        className={cn('h-1.5 w-3 rounded-sm', i < def.thrillLevel ? 'bg-neon-orange' : 'bg-muted')}
-                      />
-                    ))}
-                    <span className="text-muted-foreground ml-1.5 text-sm">thrill</span>
-                  </div>
-                </Button>
+                  <Button
+                    variant="coin"
+                    size="sm"
+                    disabled={!canAfford}
+                    onClick={() => buyRide(def.id)}
+                    className="shrink-0"
+                  >
+                    {formatMoney(def.baseCost)}
+                  </Button>
+                </div>
               );
             })}
           </div>
         </section>
-      )}
 
-      <section>
-        <div className="text-muted-foreground mb-2 flex items-center gap-2">
-          <ChevronRight className="text-neon-violet size-4 shrink-0" aria-hidden />
-          <span className="text-sm font-semibold tracking-widest uppercase">Upgrades</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          {UPGRADE_DEFINITIONS.map((upgrade) => {
-            const isPurchased = purchasedUpgrades.includes(upgrade.id);
-            const rideExists = !upgrade.rideId || unlockedRideIds.has(upgrade.rideId);
-            const prereqMet = !upgrade.requires || purchasedUpgrades.includes(upgrade.requires);
-            const canAfford = money >= upgrade.cost;
-            const rideDef = upgrade.rideId ? getRideDefinition(upgrade.rideId) : null;
-            const prereqUpgrade = upgrade.requires ? getUpgradeDefinition(upgrade.requires) : null;
-            const isAvailable = rideExists && prereqMet && !isPurchased;
+        <Separator />
 
-            if (!rideExists) return null;
+        <section>
+          <h2 className="text-foreground mb-2 flex items-center gap-1.5 text-sm font-bold">
+            <span className="text-base">⬆️</span>
+            Upgrades
+          </h2>
+          <div className="grid gap-2">
+            {UPGRADE_DEFINITIONS.map((def) => {
+              const owned = ownedUpgradeIds.has(def.id);
+              const prereqMet = !def.prerequisiteId || ownedUpgradeIds.has(def.prerequisiteId);
+              const canAfford = money >= def.cost;
+              const canBuy = !owned && prereqMet && canAfford;
 
-            return (
-              <Button
-                key={upgrade.id}
-                variant="outline"
-                disabled={!isAvailable || !canAfford}
-                onClick={() => isAvailable && canAfford && buyUpgrade(upgrade.id)}
-                className={cn(
-                  'h-auto min-h-16 w-full flex-col items-stretch gap-0 p-3 text-left whitespace-normal',
-                  isPurchased && 'border-green-500/30 bg-green-500/5',
-                  isAvailable && canAfford && !isPurchased && 'hover:border-neon-violet/50 hover:bg-neon-purple/5'
-                )}
-                aria-label={`${isPurchased ? 'Purchased' : 'Buy'}: ${upgrade.name}`}
-              >
-                <div className="flex items-start justify-between gap-2">
+              return (
+                <div
+                  key={def.id}
+                  className={cn(
+                    'park-card flex items-center gap-3 p-3',
+                    owned && 'bg-park-green/5 opacity-50',
+                    !prereqMet && 'opacity-40'
+                  )}
+                >
+                  <span className="shrink-0 text-xl">{def.icon}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {rideDef && <span className="text-base leading-none">{rideDef.icon}</span>}
-                      <span className="truncate text-base font-bold">{upgrade.name}</span>
-                      <Badge variant="secondary" className="text-sm">
-                        {EFFECT_LABELS[upgrade.effect] ?? upgrade.effect}
-                      </Badge>
+                    <div className="flex items-center gap-1 text-sm font-semibold">
+                      {def.name}
+                      {!prereqMet && <Lock className="text-muted-foreground h-3 w-3" />}
                     </div>
-                    <div className="text-muted-foreground mt-0.5 text-sm">{upgrade.description}</div>
-                    {!prereqMet && prereqUpgrade && (
-                      <div className="mt-0.5 flex items-center gap-1 text-sm text-yellow-500/80">
-                        <Lock className="size-3 shrink-0" aria-hidden />
-                        Requires: {prereqUpgrade.name}
-                      </div>
-                    )}
+                    <div className="text-muted-foreground text-xs">{def.description}</div>
                   </div>
-                  <div className="shrink-0">
-                    {isPurchased ? (
-                      <CheckCircle className="size-5 shrink-0 text-green-400" aria-hidden />
-                    ) : (
-                      <span
-                        className={cn(
-                          'text-base font-black',
-                          canAfford && isAvailable ? 'text-neon-violet' : 'text-muted-foreground'
-                        )}
-                      >
-                        {formatMoney(upgrade.cost)}
-                      </span>
-                    )}
-                  </div>
+                  {owned ? (
+                    <span className="text-park-green text-xs font-semibold">Owned</span>
+                  ) : (
+                    <Button
+                      variant="coin"
+                      size="sm"
+                      disabled={!canBuy}
+                      onClick={() => buyUpgrade(def.id)}
+                      className="shrink-0"
+                    >
+                      {formatMoney(def.cost)}
+                    </Button>
+                  )}
                 </div>
-              </Button>
-            );
-          })}
-        </div>
-      </section>
-    </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    </ScrollArea>
   );
-};
+});
+
+ShopPanel.displayName = 'ShopPanel';
+export default ShopPanel;

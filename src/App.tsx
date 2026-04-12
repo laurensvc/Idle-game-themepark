@@ -1,54 +1,116 @@
-import { useEffect } from 'react';
-import { HUD } from './components/HUD';
-import { ParkBatteryBar } from './components/ParkBatteryBar';
-import { ParkView } from './components/ParkView';
+import { configureSoundSettings, playGameSfx } from '@/audio/soundManager';
+import ActionArena from '@/components/ActionArena';
+import HUD from '@/components/HUD';
+import ParkView from '@/components/ParkView';
+import RideInspector from '@/components/RideInspector';
 import { Toaster } from '@/components/ui/sonner';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { configureSoundSettings, preloadGameSounds, retryThemeMusicAfterUserGesture } from './audio/soundManager';
-import { startGameLoop, stopGameLoop } from './store/gameStore';
-import { useGameStore } from './store/gameStore';
-import { useSyncNotificationsToSonner } from '@/lib/syncNotificationsToSonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { startNotificationSync } from '@/lib/syncNotificationsToSonner';
+import { useGameStore } from '@/store/gameStore';
+import { BarChart3, Landmark, ShoppingCart, Users } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect } from 'react';
 
-const App = () => {
-  const isAudioMuted = useGameStore((s) => s.isAudioMuted);
-  const masterVolume = useGameStore((s) => s.masterVolume);
-  const sfxVolume = useGameStore((s) => s.sfxVolume);
-  const musicVolume = useGameStore((s) => s.musicVolume);
+const ShopPanel = lazy(() => import('@/components/ShopPanel'));
+const VisitorPanel = lazy(() => import('@/components/VisitorPanel'));
+const StatsPanel = lazy(() => import('@/components/StatsPanel'));
 
-  useSyncNotificationsToSonner();
+const TabFallback: React.FC = () => (
+  <div className="flex items-center justify-center py-16">
+    <div className="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
+  </div>
+);
+
+const App: React.FC = () => {
+  const tick = useGameStore((s) => s.tick);
+  const audioSettings = useGameStore((s) => s.audioSettings);
 
   useEffect(() => {
-    startGameLoop();
-    preloadGameSounds();
-    return () => stopGameLoop();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [tick]);
+
+  useEffect(() => {
+    configureSoundSettings(audioSettings);
+  }, [audioSettings]);
+
+  useEffect(() => {
+    const unsub = startNotificationSync();
+    return unsub;
   }, []);
 
-  useEffect(() => {
-    configureSoundSettings({
-      isMuted: isAudioMuted,
-      masterVolume,
-      sfxVolume,
-      musicVolume,
-    });
-  }, [isAudioMuted, masterVolume, sfxVolume, musicVolume]);
-
-  useEffect(() => {
-    const onFirstPointer = () => {
-      retryThemeMusicAfterUserGesture();
-    };
-    document.addEventListener('pointerdown', onFirstPointer, { capture: true, once: true });
-    return () => document.removeEventListener('pointerdown', onFirstPointer, { capture: true });
+  const handleUserGesture = useCallback(() => {
+    import('@/audio/soundManager').then((m) => m.retryThemeMusicAfterUserGesture());
   }, []);
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <div className="dark crt-overlay bg-background text-foreground flex h-screen flex-col overflow-hidden">
+    <div onClick={handleUserGesture}>
+      <div className="bg-background text-foreground mx-auto flex h-dvh max-w-md flex-col overflow-hidden">
         <HUD />
-        <ParkBatteryBar />
-        <ParkView />
-        <Toaster position="bottom-right" />
+
+        <Tabs
+          defaultValue="park"
+          className="flex min-h-0 flex-1 flex-col"
+          onValueChange={() => {
+            playGameSfx('ui_toggle');
+          }}
+        >
+          <TabsContent value="park" className="mt-0 flex min-h-0 flex-1 flex-col">
+            <ParkView />
+          </TabsContent>
+          <TabsContent value="shop" className="mt-0 flex min-h-0 flex-1 flex-col">
+            <Suspense fallback={<TabFallback />}>
+              <ShopPanel />
+            </Suspense>
+          </TabsContent>
+          <TabsContent value="visitors" className="mt-0 flex min-h-0 flex-1 flex-col">
+            <Suspense fallback={<TabFallback />}>
+              <VisitorPanel />
+            </Suspense>
+          </TabsContent>
+          <TabsContent value="stats" className="mt-0 flex min-h-0 flex-1 flex-col">
+            <Suspense fallback={<TabFallback />}>
+              <StatsPanel />
+            </Suspense>
+          </TabsContent>
+
+          <ActionArena />
+
+          <TabsList className="bg-card h-14 w-full gap-0 rounded-none border-t px-0">
+            <TabsTrigger
+              value="park"
+              className="h-full flex-1 flex-col gap-0.5 rounded-none data-[state=active]:shadow-none"
+            >
+              <Landmark className="h-5 w-5" />
+              <span className="text-[10px]">Park</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="shop"
+              className="h-full flex-1 flex-col gap-0.5 rounded-none data-[state=active]:shadow-none"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              <span className="text-[10px]">Shop</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="visitors"
+              className="h-full flex-1 flex-col gap-0.5 rounded-none data-[state=active]:shadow-none"
+            >
+              <Users className="h-5 w-5" />
+              <span className="text-[10px]">Visitors</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="stats"
+              className="h-full flex-1 flex-col gap-0.5 rounded-none data-[state=active]:shadow-none"
+            >
+              <BarChart3 className="h-5 w-5" />
+              <span className="text-[10px]">Stats</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <RideInspector />
+        <Toaster />
       </div>
-    </TooltipProvider>
+    </div>
   );
 };
 

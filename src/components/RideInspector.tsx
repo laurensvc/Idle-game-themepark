@@ -1,332 +1,164 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { getLevelCapacityMultiplier, getLevelIncomeMultiplier, getLevelUpCost, getRideDefinition } from '@/data/rides';
-import { UPGRADE_DEFINITIONS, getUpgradeDefinition } from '@/data/upgrades';
-import { cn } from '@/lib/utils';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { BALANCE } from '@/data/balance';
+import { getLevelUpCost, getRideDefinition } from '@/data/rides';
+import { formatMoney } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
-import { AlertTriangle, ArrowUp, CheckCircle, Lock, Users, Wrench, X, Zap } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
+import { ArrowUpCircle, Droplets, Pause, Play, Star, TrendingUp, Users, Wrench } from 'lucide-react';
+import { memo } from 'react';
 
-const formatMoney = (amount: number): string => {
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;
-  return `$${amount}`;
-};
+const RideInspector: React.FC = memo(() => {
+  const selectedRideId = useGameStore((s) => s.selectedRideId);
+  const rides = useGameStore((s) => s.rides);
+  const money = useGameStore((s) => s.money);
+  const selectRide = useGameStore((s) => s.selectRide);
+  const toggleRide = useGameStore((s) => s.toggleRide);
+  const repairRide = useGameStore((s) => s.repairRide);
+  const levelUpRide = useGameStore((s) => s.levelUpRide);
 
-const EFFECT_LABELS: Record<string, string> = {
-  auto_repair: 'Auto-Repair',
-  capacity_boost: '+Capacity',
-  income_boost: '+Income',
-  breakdown_reduction: '-Breakdowns',
-};
+  const ride = selectedRideId ? rides.find((r) => r.id === selectedRideId) : null;
+  const def = ride ? getRideDefinition(ride.definitionId) : null;
 
-const STATUS_COLORS: Record<string, { text: string; bg: string; border: string; dot: string }> = {
-  operating: { text: 'text-green-400', bg: 'bg-green-500/15', border: 'border-green-500/40', dot: 'bg-green-400' },
-  broken: { text: 'text-red-400', bg: 'bg-red-500/15', border: 'border-red-500/40', dot: 'bg-red-400' },
-  repairing: { text: 'text-yellow-400', bg: 'bg-yellow-500/15', border: 'border-yellow-500/40', dot: 'bg-yellow-400' },
-  idle: { text: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/40', dot: 'bg-amber-400' },
-  locked: { text: 'text-muted-foreground', bg: 'bg-muted/20', border: 'border-border', dot: 'bg-muted-foreground' },
-};
+  if (!ride || !def) {
+    return (
+      <Sheet open={false} onOpenChange={() => selectRide(null)}>
+        <SheetContent />
+      </Sheet>
+    );
+  }
 
-export const RideInspector = () => {
-  const {
-    selectedRideId,
-    rides,
-    selectRide,
-    repairRide,
-    cleanRide,
-    levelUpRide,
-    purchasedUpgrades,
-    money,
-    buyUpgrade,
-  } = useGameStore(
-    useShallow((s) => ({
-      selectedRideId: s.selectedRideId,
-      rides: s.rides,
-      selectRide: s.selectRide,
-      repairRide: s.repairRide,
-      cleanRide: s.cleanRide,
-      levelUpRide: s.levelUpRide,
-      purchasedUpgrades: s.purchasedUpgrades,
-      money: s.money,
-      buyUpgrade: s.buyUpgrade,
-    }))
-  );
-
-  const ride = rides.find((r) => r.instanceId === selectedRideId);
-  if (!ride) return null;
-
-  const def = getRideDefinition(ride.definitionId);
-  if (!def) return null;
-
-  const statusStyle = STATUS_COLORS[ride.status] ?? STATUS_COLORS.idle;
-  const rideUpgrades = UPGRADE_DEFINITIONS.filter((u) => u.rideId === ride.definitionId);
-
-  const levelUpCost = getLevelUpCost(def, ride.level);
-  const canLevelUp = ride.level < def.maxLevel && money >= levelUpCost;
-  const isMaxLevel = ride.level >= def.maxLevel;
-
-  const currentCapacity = Math.floor(def.baseCapacity * getLevelCapacityMultiplier(ride.level));
-  const currentIncomeMult = getLevelIncomeMultiplier(ride.level);
-  const nextCapacity = !isMaxLevel
-    ? Math.floor(def.baseCapacity * getLevelCapacityMultiplier(ride.level + 1))
-    : currentCapacity;
-  const nextIncomeMult = !isMaxLevel ? getLevelIncomeMultiplier(ride.level + 1) : currentIncomeMult;
+  const levelUpCost = ride.level < BALANCE.maxRideLevel ? getLevelUpCost(def.baseLevelUpCost, ride.level) : null;
+  const canLevelUp = levelUpCost !== null && money >= levelUpCost;
+  const income = ride.visitors * def.baseIncome * (1 + BALANCE.incomeMultPerLevel * (ride.level - 1));
+  const capacity = Math.round(def.baseCapacity * (1 + BALANCE.capacityMultPerLevel * (ride.level - 1)));
 
   return (
-    <div className="flex flex-col gap-4">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => selectRide(null)}
-        className="text-muted-foreground hover:text-foreground w-fit gap-2 px-0"
-        aria-label="Close ride inspector"
-      >
-        <X className="size-4 shrink-0" aria-hidden />
-        Back
-      </Button>
+    <Sheet open={!!selectedRideId} onOpenChange={(open) => !open && selectRide(null)}>
+      <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <span className="text-3xl">{def.emoji}</span>
+            <div>
+              <div className="text-lg">{def.name}</div>
+              <SheetDescription className="text-xs">
+                {def.category.charAt(0).toUpperCase() + def.category.slice(1)} ride
+              </SheetDescription>
+            </div>
+          </SheetTitle>
+        </SheetHeader>
 
-      <Card size="sm" className="gap-3 py-4 text-center shadow-none ring-1" style={{ borderColor: def.gridColor }}>
-        <span className="text-5xl leading-none">{def.icon}</span>
-        <h2 className="font-heading text-base" style={{ color: def.gridColor }}>
-          {def.name}
-        </h2>
-        <div className="text-muted-foreground font-heading text-sm">
-          LVL {ride.level} / {def.maxLevel}
-        </div>
-        <Badge
-          variant="outline"
-          className={cn(
-            'mx-auto gap-2 border px-3 py-1 text-sm font-bold uppercase',
-            statusStyle.bg,
-            statusStyle.border,
-            statusStyle.text
-          )}
-        >
-          <span
-            className={cn(
-              'inline-block h-2.5 w-2.5 rounded-full',
-              statusStyle.dot,
-              ride.status === 'broken' && 'animate-pulse'
-            )}
-          />
-          {ride.status === 'broken' && <AlertTriangle className="size-3.5 shrink-0" aria-hidden />}
-          {ride.status === 'repairing' && <Wrench className="size-3.5 shrink-0" aria-hidden />}
-          {ride.status === 'idle' && <Zap className="size-3.5 shrink-0" aria-hidden />}
-          {ride.status === 'idle' ? 'off' : ride.status}
-        </Badge>
-        <p className="text-muted-foreground px-2 text-sm">{def.description}</p>
-      </Card>
-
-      <Card size="sm" className="gap-3 py-4 shadow-none">
-        <div className="text-muted-foreground px-4 text-sm font-bold tracking-wider uppercase">Live Stats</div>
-        <Separator />
-        <div className="text-foreground flex items-center justify-between px-4 text-base">
-          <span className="text-muted-foreground flex items-center gap-1.5">
-            <Users className="text-neon-cyan size-4 shrink-0" aria-hidden />
-            Guests
-          </span>
-          <span className="font-heading text-base">
-            {ride.currentVisitors} <span className="text-muted-foreground text-sm">/ {currentCapacity}</span>
-          </span>
-        </div>
-        <div className="flex items-center justify-between px-4 text-base">
-          <span className="text-muted-foreground">$/tick</span>
-          <span className="font-heading text-neon-orange text-base">
-            ${Math.floor(def.baseCostPerTick * currentIncomeMult)}
-          </span>
-        </div>
-        <div className="flex items-center justify-between px-4 text-base">
-          <span className="text-muted-foreground">Total served</span>
-          <span className="font-heading text-base">{ride.totalVisitorsServed}</span>
-        </div>
-        <div className="flex items-center justify-between px-4 text-base">
-          <span className="text-muted-foreground">Thrill</span>
-          <div className="flex gap-1">
-            {Array.from({ length: 5 }, (_, i) => (
-              <div
-                key={i}
-                className={cn('h-3 w-4 rounded-sm', i < def.thrillLevel ? 'bg-neon-orange' : 'bg-muted')}
-                style={i < def.thrillLevel ? { boxShadow: '0 0 4px #f97316' } : undefined}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="px-4">
-          <div className="mb-1 flex items-center justify-between text-base">
-            <span className="text-muted-foreground">Dirt</span>
-            <span
-              className={cn(
-                'font-heading text-base',
-                ride.dirtLevel > 70 ? 'text-red-400' : ride.dirtLevel > 40 ? 'text-yellow-400' : 'text-green-400'
-              )}
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant={
+                ride.status === 'operating'
+                  ? 'operating'
+                  : ride.status === 'broken'
+                    ? 'broken'
+                    : ride.status === 'repairing'
+                      ? 'repairing'
+                      : 'idle'
+              }
             >
-              {Math.round(ride.dirtLevel)}%
-            </span>
+              {ride.status.charAt(0).toUpperCase() + ride.status.slice(1)}
+            </Badge>
+            <Badge variant="secondary" className="gap-1">
+              <Star className="h-3 w-3" />
+              Level {ride.level}/{BALANCE.maxRideLevel}
+            </Badge>
           </div>
-          <div className="pixel-bar bg-muted h-3 overflow-hidden rounded-sm">
-            <div
-              className="h-full transition-all duration-500"
-              style={{
-                width: `${ride.dirtLevel}%`,
-                background: ride.dirtLevel > 70 ? '#ef4444' : ride.dirtLevel > 40 ? '#eab308' : '#8b7355',
-              }}
+
+          <div className="grid grid-cols-2 gap-3">
+            <StatBox
+              icon={<TrendingUp className="text-park-green h-4 w-4" />}
+              label="Income/s"
+              value={ride.status === 'operating' ? formatMoney(income) : '--'}
+            />
+            <StatBox icon={<Users className="text-park-blue h-4 w-4" />} label="Capacity" value={String(capacity)} />
+            <StatBox
+              icon={<Droplets className="text-park-orange h-4 w-4" />}
+              label="Dirt"
+              value={`${Math.round(ride.dirt)}%`}
+            />
+            <StatBox
+              icon={<Wrench className="text-muted-foreground h-4 w-4" />}
+              label="Visitors"
+              value={String(ride.visitors)}
             />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={ride.dirtLevel <= 0 || ride.status === 'broken' || ride.status === 'repairing'}
-            onClick={() => cleanRide(ride.instanceId)}
-            className="mt-2 w-full border-green-500/40 text-green-400 hover:bg-green-500/10 disabled:opacity-40"
-            aria-label={`Clean ${def.name}`}
-          >
-            🧹 Clean Ride
-          </Button>
-        </div>
-      </Card>
 
-      <Card size="sm" className="gap-3 py-4 shadow-none">
-        <div className="text-muted-foreground flex items-center gap-2 px-4 text-sm font-bold tracking-wider uppercase">
-          <ArrowUp className="text-neon-cyan size-3.5 shrink-0" aria-hidden />
-          Level Up
-        </div>
-        <Separator />
-        {isMaxLevel ? (
-          <div className="text-neon-green px-4 text-center text-base font-medium">MAX LEVEL</div>
-        ) : (
-          <div className="flex flex-col gap-3 px-4">
-            <div className="text-muted-foreground space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span>Capacity</span>
-                <span>
-                  {currentCapacity} → <span className="text-neon-cyan">{nextCapacity}</span>
-                </span>
+          {ride.status === 'repairing' && (
+            <div>
+              <div className="text-muted-foreground mb-1 text-xs">
+                Repair progress ({ride.repairProgress}/{def.repairTime}s)
               </div>
-              <div className="flex justify-between">
-                <span>Income mult</span>
-                <span>
-                  {currentIncomeMult.toFixed(2)}x →{' '}
-                  <span className="text-neon-orange">{nextIncomeMult.toFixed(2)}x</span>
-                </span>
+              <div className="park-bar h-3">
+                <div
+                  className="bg-park-yellow h-full rounded-full transition-all duration-500"
+                  style={{ width: `${(ride.repairProgress / def.repairTime) * 100}%` }}
+                />
               </div>
             </div>
-            <Button
-              variant="secondary"
-              disabled={!canLevelUp}
-              onClick={() => levelUpRide(ride.instanceId)}
-              className={cn(
-                'border-neon-cyan/50 w-full gap-2 font-bold uppercase',
-                canLevelUp && 'bg-neon-cyan/15 text-neon-cyan hover:bg-neon-cyan/25'
-              )}
-              aria-label={`Level up ${def.name} for ${formatMoney(levelUpCost)}`}
-            >
-              <ArrowUp className="size-4 shrink-0" aria-hidden />
-              Level {ride.level + 1} — {formatMoney(levelUpCost)}
-            </Button>
-          </div>
-        )}
-      </Card>
+          )}
 
-      <Button
-        variant="destructive"
-        size="lg"
-        disabled={ride.status !== 'broken'}
-        onClick={() => repairRide(ride.instanceId)}
-        className={cn(
-          'w-full gap-2 font-bold uppercase disabled:opacity-40',
-          ride.status === 'broken' && 'animate-pulse-neon'
-        )}
-        aria-label={ride.status === 'broken' ? `Repair ${def.name}` : `Repair ${def.name} (ride is not broken)`}
-      >
-        <Wrench className="size-5 shrink-0" aria-hidden />
-        Repair Now
-      </Button>
-
-      {ride.status === 'repairing' && (
-        <Card size="sm" className="gap-2 border-yellow-500/30 bg-yellow-500/10 py-3 shadow-none">
-          <div className="flex items-center justify-between text-base text-yellow-400">
-            <span className="flex items-center gap-1.5 font-bold uppercase">
-              <Wrench className="size-4 shrink-0" aria-hidden />
-              {ride.isAutoRepair ? 'Auto Repair' : 'Repairing'}
-            </span>
-            <span className="font-heading">{Math.round(ride.repairProgress)}%</span>
-          </div>
-          <div className="pixel-bar bg-muted h-3 overflow-hidden rounded-sm">
-            <div
-              className="h-full bg-yellow-400 transition-all duration-1000"
-              style={{ width: `${ride.repairProgress}%`, boxShadow: '0 0 8px #eab308' }}
-            />
-          </div>
-        </Card>
-      )}
-
-      {rideUpgrades.length > 0 && (
-        <Card size="sm" className="gap-2 py-4 shadow-none">
-          <div className="text-muted-foreground flex items-center gap-2 px-4 text-sm font-bold tracking-wider uppercase">
-            <Zap className="text-neon-violet size-3.5 shrink-0" aria-hidden />
-            Ride Upgrades
-          </div>
           <Separator />
-          <div className="flex flex-col gap-2 px-2">
-            {rideUpgrades.map((upgrade) => {
-              const isPurchased = purchasedUpgrades.includes(upgrade.id);
-              const prereqMet = !upgrade.requires || purchasedUpgrades.includes(upgrade.requires);
-              const canAfford = money >= upgrade.cost;
-              const prereqUpgrade = upgrade.requires ? getUpgradeDefinition(upgrade.requires) : null;
-              const isAvailable = prereqMet && !isPurchased;
 
-              return (
-                <Button
-                  key={upgrade.id}
-                  variant="outline"
-                  disabled={!isAvailable || !canAfford}
-                  onClick={() => isAvailable && canAfford && buyUpgrade(upgrade.id)}
-                  className={cn(
-                    'h-auto min-h-14 w-full flex-col items-stretch gap-0 p-3 text-left whitespace-normal',
-                    isPurchased && 'border-green-500/30 bg-green-500/5',
-                    isAvailable && canAfford && !isPurchased && 'hover:border-neon-violet/50 hover:bg-neon-purple/5',
-                    (!isAvailable || !canAfford) && !isPurchased && 'opacity-50'
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-base font-bold">{upgrade.name}</span>
-                        <Badge variant="secondary" className="text-muted-foreground text-sm">
-                          {EFFECT_LABELS[upgrade.effect] ?? upgrade.effect}
-                        </Badge>
-                      </div>
-                      <div className="text-muted-foreground mt-0.5 text-sm">{upgrade.description}</div>
-                      {!prereqMet && prereqUpgrade && (
-                        <div className="mt-1 flex items-center gap-1 text-sm text-yellow-500/80">
-                          <Lock className="size-3 shrink-0" aria-hidden />
-                          Requires: {prereqUpgrade.name}
-                        </div>
-                      )}
-                    </div>
-                    <div className="shrink-0">
-                      {isPurchased ? (
-                        <CheckCircle className="size-5 shrink-0 text-green-400" aria-hidden />
-                      ) : (
-                        <span
-                          className={cn(
-                            'text-base font-black',
-                            canAfford && isAvailable ? 'text-neon-violet' : 'text-muted-foreground'
-                          )}
-                        >
-                          {formatMoney(upgrade.cost)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Button>
-              );
-            })}
+          <div className="flex flex-wrap gap-2">
+            {ride.status === 'broken' ? (
+              <Button variant="coin" size="sm" onClick={() => repairRide(ride.id)} className="gap-1.5">
+                <Wrench className="h-4 w-4" />
+                Repair
+              </Button>
+            ) : ride.status !== 'repairing' ? (
+              <Button
+                variant={ride.status === 'operating' ? 'outline' : 'park'}
+                size="sm"
+                onClick={() => toggleRide(ride.id)}
+                className="gap-1.5"
+              >
+                {ride.status === 'operating' ? (
+                  <>
+                    <Pause className="h-4 w-4" /> Stop
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4" /> Start
+                  </>
+                )}
+              </Button>
+            ) : null}
+
+            {ride.level < BALANCE.maxRideLevel && levelUpCost !== null && (
+              <Button
+                variant="coin"
+                size="sm"
+                disabled={!canLevelUp}
+                onClick={() => levelUpRide(ride.id)}
+                className="gap-1.5"
+              >
+                <ArrowUpCircle className="h-4 w-4" />
+                Level Up ({formatMoney(levelUpCost)})
+              </Button>
+            )}
           </div>
-        </Card>
-      )}
-    </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
-};
+});
+
+RideInspector.displayName = 'RideInspector';
+
+const StatBox: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
+  <div className="bg-muted/50 flex items-center gap-2 rounded-lg px-3 py-2">
+    {icon}
+    <div>
+      <div className="text-muted-foreground text-xs">{label}</div>
+      <div className="text-sm font-semibold tabular-nums">{value}</div>
+    </div>
+  </div>
+);
+
+export default RideInspector;

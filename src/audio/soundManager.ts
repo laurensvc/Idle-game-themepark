@@ -19,8 +19,8 @@ class SoundManager {
   private players = new Map<SoundId, HTMLAudioElement>();
   private themeMusic: HTMLAudioElement | null = null;
   private settings: AudioRuntimeSettings = {
-    // Start muted so missing files never spam requests on first run.
-    isMuted: true,
+    // Matches [gameStore] default before hydration; App syncs from localStorage on mount.
+    isMuted: false,
     masterVolume: 0.8,
     sfxVolume: 0.8,
     musicVolume: 0.75,

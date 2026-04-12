@@ -1,140 +1,94 @@
-import { Card } from '@/components/ui/card';
-import { useGameStore } from '@/store/gameStore';
-import { BarChart2, Clock, Trophy, Wrench } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
-import CountUp from './CountUp';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatMoney, formatNumber } from '@/lib/utils';
+import { selectIncomePerTick, selectOperatingCount, selectTotalVisitors, useGameStore } from '@/store/gameStore';
+import { Clock, DollarSign, ShoppingBag, Star, Ticket, TrendingUp, Users } from 'lucide-react';
+import { memo } from 'react';
 
-const formatMoney = (amount: number): string => {
-  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;
-  return `$${Math.floor(amount)}`;
-};
+const StatsPanel: React.FC = memo(() => {
+  const money = useGameStore((s) => s.money);
+  const totalMoneyEarned = useGameStore((s) => s.totalMoneyEarned);
+  const totalVisitorsServed = useGameStore((s) => s.totalVisitorsServed);
+  const rides = useGameStore((s) => s.rides);
+  const upgrades = useGameStore((s) => s.upgrades);
+  const tickCount = useGameStore((s) => s.tickCount);
+  const happiness = useGameStore((s) => s.happiness);
+  const incomePerTick = useGameStore(selectIncomePerTick);
+  const currentVisitors = useGameStore(selectTotalVisitors);
+  const operatingCount = useGameStore(selectOperatingCount);
 
-const formatMoneyCount = (n: number) => formatMoney(n);
-
-const formatTime = (seconds: number): string => {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m ${s}s`;
-};
-
-const formatTimeCount = (n: number) => formatTime(Math.floor(n));
-
-const PANEL_COUNT_DURATION = 0.85;
-
-interface StatRowProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  countUp?: { to: number; formatDisplay?: (n: number) => string; separator?: string };
-}
-
-const StatRow = ({ icon, label, value, countUp }: StatRowProps) => (
-  <div className="border-border/60 flex items-center justify-between border-b py-2 last:border-0">
-    <div className="text-muted-foreground flex items-center gap-2 text-sm">
-      {icon}
-      <span className="tracking-wider uppercase">{label}</span>
-    </div>
-    {countUp ? (
-      <CountUp
-        to={countUp.to}
-        formatDisplay={countUp.formatDisplay}
-        separator={countUp.separator ?? ''}
-        duration={PANEL_COUNT_DURATION}
-        className="text-foreground text-base font-bold tabular-nums"
-        startWhen
-      />
-    ) : (
-      <span className="text-foreground text-base font-bold">{value}</span>
-    )}
-  </div>
-);
-
-export const StatsPanel = () => {
-  const { stats, rides } = useGameStore(
-    useShallow((s) => ({
-      stats: s.stats,
-      rides: s.rides,
-    }))
-  );
-
-  const operatingRides = rides.filter((r) => r.status === 'operating').length;
-  const brokenRides = rides.filter((r) => r.status === 'broken').length;
-  const repairingRides = rides.filter((r) => r.status === 'repairing').length;
+  const stats = [
+    {
+      icon: <DollarSign className="text-park-orange h-5 w-5" />,
+      label: 'Current Balance',
+      value: formatMoney(money),
+    },
+    {
+      icon: <TrendingUp className="text-park-green h-5 w-5" />,
+      label: 'Income / second',
+      value: `${formatMoney(incomePerTick)}/s`,
+    },
+    {
+      icon: <DollarSign className="text-park-coin h-5 w-5" />,
+      label: 'Total Earned',
+      value: formatMoney(totalMoneyEarned),
+    },
+    {
+      icon: <Users className="text-park-blue h-5 w-5" />,
+      label: 'Current Visitors',
+      value: formatNumber(currentVisitors),
+    },
+    {
+      icon: <Users className="text-park-purple h-5 w-5" />,
+      label: 'Total Visitors Served',
+      value: formatNumber(totalVisitorsServed),
+    },
+    {
+      icon: <Ticket className="text-park-red h-5 w-5" />,
+      label: 'Rides Owned',
+      value: `${rides.length} (${operatingCount} running)`,
+    },
+    {
+      icon: <ShoppingBag className="text-park-green h-5 w-5" />,
+      label: 'Upgrades Purchased',
+      value: String(upgrades.length),
+    },
+    {
+      icon: <Star className="text-park-yellow h-5 w-5" />,
+      label: 'Happiness',
+      value: `${Math.round(happiness)}%`,
+    },
+    {
+      icon: <Clock className="text-muted-foreground h-5 w-5" />,
+      label: 'Time Played',
+      value: formatTime(tickCount),
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="text-muted-foreground flex items-center gap-2">
-        <BarChart2 className="text-neon-violet size-4 shrink-0" aria-hidden />
-        <span className="text-sm font-semibold tracking-widest uppercase">Park Stats</span>
+    <ScrollArea className="flex-1">
+      <div className="space-y-2 px-3 pb-3">
+        {stats.map((stat) => (
+          <div key={stat.label} className="park-card flex items-center gap-3 p-3">
+            {stat.icon}
+            <div className="flex-1">
+              <div className="text-muted-foreground text-xs">{stat.label}</div>
+              <div className="text-sm font-bold tabular-nums">{stat.value}</div>
+            </div>
+          </div>
+        ))}
       </div>
-
-      <Card size="sm" className="gap-0 py-3 shadow-none">
-        <div className="px-4">
-          <StatRow
-            icon={<span className="text-neon-orange text-base">$</span>}
-            label="Total Earned"
-            value={formatMoney(stats.totalEarnings)}
-            countUp={{ to: stats.totalEarnings, formatDisplay: formatMoneyCount }}
-          />
-          <StatRow
-            icon={<Trophy className="size-3.5 shrink-0 text-yellow-400" aria-hidden />}
-            label="Peak Guests"
-            value={String(stats.peakVisitors)}
-            countUp={{ to: stats.peakVisitors, separator: ',' }}
-          />
-          <StatRow
-            icon={<Wrench className="text-muted-foreground size-3.5 shrink-0" aria-hidden />}
-            label="Rides Fixed"
-            value={String(stats.ridesFixed)}
-            countUp={{ to: stats.ridesFixed, separator: ',' }}
-          />
-          <StatRow
-            icon={<Clock className="text-muted-foreground size-3.5 shrink-0" aria-hidden />}
-            label="Time Played"
-            value={formatTime(stats.timePlayed)}
-            countUp={{ to: stats.timePlayed, formatDisplay: formatTimeCount }}
-          />
-        </div>
-      </Card>
-
-      <div>
-        <div className="text-muted-foreground mb-2 text-sm tracking-wider uppercase">Ride Status</div>
-        <div className="grid grid-cols-3 gap-2">
-          <Card size="sm" className="gap-1 border-green-500/20 bg-green-500/10 py-3 text-center shadow-none ring-0">
-            <CountUp
-              to={operatingRides}
-              separator=","
-              duration={PANEL_COUNT_DURATION}
-              className="font-heading text-2xl font-black text-green-400 tabular-nums"
-              startWhen
-            />
-            <div className="text-sm tracking-wide text-green-400/80 uppercase">Open</div>
-          </Card>
-          <Card size="sm" className="gap-1 border-red-500/20 bg-red-500/10 py-3 text-center shadow-none ring-0">
-            <CountUp
-              to={brokenRides}
-              separator=","
-              duration={PANEL_COUNT_DURATION}
-              className="font-heading text-2xl font-black text-red-400 tabular-nums"
-              startWhen
-            />
-            <div className="text-sm tracking-wide text-red-400/80 uppercase">Broken</div>
-          </Card>
-          <Card size="sm" className="gap-1 border-yellow-500/20 bg-yellow-500/10 py-3 text-center shadow-none ring-0">
-            <CountUp
-              to={repairingRides}
-              separator=","
-              duration={PANEL_COUNT_DURATION}
-              className="font-heading text-2xl font-black text-yellow-400 tabular-nums"
-              startWhen
-            />
-            <div className="text-sm tracking-wide text-yellow-400/80 uppercase">Repair</div>
-          </Card>
-        </div>
-      </div>
-    </div>
+    </ScrollArea>
   );
+});
+
+const formatTime = (ticks: number): string => {
+  const hours = Math.floor(ticks / 3600);
+  const minutes = Math.floor((ticks % 3600) / 60);
+  const seconds = ticks % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
 };
+
+StatsPanel.displayName = 'StatsPanel';
+export default StatsPanel;
