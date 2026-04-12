@@ -88,20 +88,14 @@ export const ActionArena = () => {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const dirtTotal = () =>
-        useGameStore.getState().parkDirt +
-        useGameStore.getState().rides.reduce((acc, r) => acc + r.dirtLevel, 0);
+        useGameStore.getState().parkDirt + useGameStore.getState().rides.reduce((acc, r) => acc + r.dirtLevel, 0);
       const before = dirtTotal();
       arenaQuickSweep();
       const after = dirtTotal();
       if (before === after) {
         pushBurst(x, y, 'Already clean', 'text-muted-foreground text-xs font-medium');
       } else {
-        pushBurst(
-          x,
-          y,
-          after <= 0.01 ? '✨ spotless' : '✨ cleaner',
-          'text-neon-cyan text-sm font-bold'
-        );
+        pushBurst(x, y, after <= 0.01 ? '✨ spotless' : '✨ cleaner', 'text-neon-cyan text-sm font-bold');
       }
     },
     [arenaQuickSweep, pushBurst]
@@ -143,7 +137,7 @@ export const ActionArena = () => {
   return (
     <aside
       ref={arenaRef}
-      className="border-border/80 from-park-surface/90 to-background relative flex max-h-[min(42vh,22rem)] w-full shrink-0 flex-col gap-3 overflow-y-auto border-b bg-linear-to-b p-3 lg:max-h-none lg:h-full lg:w-[min(20rem,100%)] lg:overflow-visible lg:border-r lg:border-b-0"
+      className="border-border/80 from-park-surface/90 to-background relative flex max-h-[min(42vh,24rem)] w-full shrink-0 flex-col gap-3 overflow-y-auto border-b bg-linear-to-b p-4 lg:h-full lg:max-h-none lg:w-[min(22rem,100%)] lg:overflow-visible lg:border-r lg:border-b-0"
       aria-label="Front gate — tap actions"
     >
       <div className="pointer-events-none absolute inset-0 opacity-[0.06]">
@@ -156,13 +150,13 @@ export const ActionArena = () => {
       </div>
 
       <div className="relative space-y-1">
-        <h2 className="font-heading text-foreground text-xs font-black tracking-widest uppercase">Front gate</h2>
-        <p className="text-muted-foreground text-[11px] leading-snug">
+        <h2 className="font-heading text-foreground text-sm font-black tracking-widest uppercase">Front gate</h2>
+        <p className="text-muted-foreground text-sm leading-snug">
           Start here: tap the roll for cash, then power the park. Rides live in the grid; Shop is on the right.
         </p>
       </div>
 
-      <div className="relative min-h-[200px] flex-1">
+      <div className="relative min-h-[12.5rem] flex-1">
         {bursts.map((b) => (
           <span
             key={b.id}
@@ -193,7 +187,7 @@ export const ActionArena = () => {
           type="button"
           onPointerDown={handleTicketPointer}
           className={cn(
-            'group border-neon-orange/50 from-amber-500/25 via-orange-500/20 to-rose-500/15 hover:border-neon-orange/80 relative w-full cursor-pointer rounded-2xl border-2 bg-linear-to-br p-4 text-center shadow-[0_0_24px_rgba(249,115,22,0.12)] transition-[box-shadow,transform] outline-none select-none hover:shadow-[0_0_32px_rgba(249,115,22,0.22)] active:scale-[0.98]',
+            'group border-neon-orange/50 hover:border-neon-orange/80 relative w-full cursor-pointer rounded-2xl border-2 bg-linear-to-br from-amber-500/25 via-orange-500/20 to-rose-500/15 p-4 text-center shadow-[0_0_24px_rgba(249,115,22,0.12)] transition-[box-shadow,transform] outline-none select-none hover:shadow-[0_0_32px_rgba(249,115,22,0.22)] active:scale-[0.98]',
             ticketSquish && 'animate-arena-ticket-squish'
           )}
           aria-label={`Sell tickets for about ${TICKET_BOOTH_CASH_MIN} to ${TICKET_BOOTH_CASH_MAX} dollars per tap`}
@@ -209,8 +203,8 @@ export const ActionArena = () => {
             strokeWidth={1.75}
             aria-hidden
           />
-          <div className="font-heading text-foreground text-sm font-black tracking-wide">Ticket roll</div>
-          <div className="text-muted-foreground mt-0.5 text-[10px] leading-tight">
+          <div className="font-heading text-foreground text-base font-black tracking-wide">Ticket roll</div>
+          <div className="text-muted-foreground mt-0.5 text-xs leading-tight">
             Tap fast — like a cookie, but it’s tickets · ~${TICKET_BOOTH_CASH_MIN}–${TICKET_BOOTH_CASH_MAX}/tap
           </div>
         </button>
@@ -223,12 +217,12 @@ export const ActionArena = () => {
             onPointerDown={handleGenerator}
             disabled={!canCharge}
             className={cn(
-              'h-auto flex-col gap-1 py-2.5 text-[10px] font-bold tracking-wide uppercase',
+              'h-auto flex-col gap-1 py-3 text-xs font-bold tracking-wide uppercase',
               canCharge && 'border-neon-cyan/40 hover:bg-neon-cyan/10 text-neon-cyan'
             )}
             aria-label={canCharge ? 'Crank generator to charge park power' : 'Park power full'}
           >
-            <Battery className="size-4" aria-hidden />
+            <Battery className="size-5" aria-hidden />
             Power
             <span className="text-muted-foreground font-normal normal-case">+{RIDE_BATTERY_CHARGE_PER_CLICK}%</span>
           </Button>
@@ -239,12 +233,12 @@ export const ActionArena = () => {
             onPointerDown={handleSweep}
             disabled={!hasDirt}
             className={cn(
-              'h-auto flex-col gap-1 py-2.5 text-[10px] font-bold tracking-wide uppercase',
+              'h-auto flex-col gap-1 py-3 text-xs font-bold tracking-wide uppercase',
               hasDirt && 'border-neon-cyan/40 hover:bg-neon-cyan/10 text-neon-cyan'
             )}
             aria-label="Sweep paths — reduces park and ride dirt a little"
           >
-            <Wind className="size-4" aria-hidden />
+            <Wind className="size-5" aria-hidden />
             Sweep
           </Button>
           <Button
@@ -252,16 +246,16 @@ export const ActionArena = () => {
             variant="outline"
             size="sm"
             onPointerDown={handleMaintenance}
-            className="h-auto flex-col gap-1 border-neon-violet/35 py-2.5 text-[10px] font-bold tracking-wide text-neon-violet uppercase hover:bg-neon-violet/10"
+            className="border-neon-violet/35 text-neon-violet hover:bg-neon-violet/10 h-auto flex-col gap-1 py-3 text-xs font-bold tracking-wide uppercase"
             aria-label="Maintenance tap — small tip and happiness bump"
           >
-            <Wrench className="size-4" aria-hidden />
+            <Wrench className="size-5" aria-hidden />
             Tune-up
           </Button>
         </div>
 
-        <Card size="sm" className="mt-3 border-dashed py-2.5 shadow-none ring-1 ring-foreground/10">
-          <p className="text-muted-foreground px-2 text-center text-[10px] leading-snug">
+        <Card size="sm" className="ring-foreground/10 mt-3 border-dashed py-2.5 shadow-none ring-1">
+          <p className="text-muted-foreground px-2 text-center text-xs leading-snug">
             Helpers sometimes pop in when the crowd goes wild — keep tapping tickets to grow your park.
           </p>
         </Card>

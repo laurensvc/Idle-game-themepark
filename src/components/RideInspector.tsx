@@ -83,22 +83,22 @@ export const RideInspector = () => {
         className="text-muted-foreground hover:text-foreground w-fit gap-2 px-0"
         aria-label="Close ride inspector"
       >
-        <X size={14} />
+        <X className="size-4 shrink-0" aria-hidden />
         Back
       </Button>
 
       <Card size="sm" className="gap-3 py-4 text-center shadow-none ring-1" style={{ borderColor: def.gridColor }}>
         <span className="text-5xl leading-none">{def.icon}</span>
-        <h2 className="font-heading text-sm" style={{ color: def.gridColor }}>
+        <h2 className="font-heading text-base" style={{ color: def.gridColor }}>
           {def.name}
         </h2>
-        <div className="text-muted-foreground font-heading text-xs">
+        <div className="text-muted-foreground font-heading text-sm">
           LVL {ride.level} / {def.maxLevel}
         </div>
         <Badge
           variant="outline"
           className={cn(
-            'mx-auto gap-2 border px-3 py-1 text-xs font-bold uppercase',
+            'mx-auto gap-2 border px-3 py-1 text-sm font-bold uppercase',
             statusStyle.bg,
             statusStyle.border,
             statusStyle.text
@@ -111,37 +111,37 @@ export const RideInspector = () => {
               ride.status === 'broken' && 'animate-pulse'
             )}
           />
-          {ride.status === 'broken' && <AlertTriangle size={12} />}
-          {ride.status === 'repairing' && <Wrench size={12} />}
-          {ride.status === 'idle' && <Zap size={12} />}
+          {ride.status === 'broken' && <AlertTriangle className="size-3.5 shrink-0" aria-hidden />}
+          {ride.status === 'repairing' && <Wrench className="size-3.5 shrink-0" aria-hidden />}
+          {ride.status === 'idle' && <Zap className="size-3.5 shrink-0" aria-hidden />}
           {ride.status === 'idle' ? 'off' : ride.status}
         </Badge>
-        <p className="text-muted-foreground px-2 text-xs">{def.description}</p>
+        <p className="text-muted-foreground px-2 text-sm">{def.description}</p>
       </Card>
 
       <Card size="sm" className="gap-3 py-4 shadow-none">
-        <div className="text-muted-foreground px-4 text-xs font-bold tracking-wider uppercase">Live Stats</div>
+        <div className="text-muted-foreground px-4 text-sm font-bold tracking-wider uppercase">Live Stats</div>
         <Separator />
-        <div className="text-foreground flex items-center justify-between px-4 text-sm">
+        <div className="text-foreground flex items-center justify-between px-4 text-base">
           <span className="text-muted-foreground flex items-center gap-1.5">
-            <Users size={14} className="text-neon-cyan" />
+            <Users className="text-neon-cyan size-4 shrink-0" aria-hidden />
             Guests
           </span>
-          <span className="font-heading text-sm">
-            {ride.currentVisitors} <span className="text-muted-foreground text-xs">/ {currentCapacity}</span>
+          <span className="font-heading text-base">
+            {ride.currentVisitors} <span className="text-muted-foreground text-sm">/ {currentCapacity}</span>
           </span>
         </div>
-        <div className="flex items-center justify-between px-4 text-sm">
+        <div className="flex items-center justify-between px-4 text-base">
           <span className="text-muted-foreground">$/tick</span>
-          <span className="font-heading text-neon-orange text-sm">
+          <span className="font-heading text-neon-orange text-base">
             ${Math.floor(def.baseCostPerTick * currentIncomeMult)}
           </span>
         </div>
-        <div className="flex items-center justify-between px-4 text-sm">
+        <div className="flex items-center justify-between px-4 text-base">
           <span className="text-muted-foreground">Total served</span>
-          <span className="font-heading text-sm">{ride.totalVisitorsServed}</span>
+          <span className="font-heading text-base">{ride.totalVisitorsServed}</span>
         </div>
-        <div className="flex items-center justify-between px-4 text-sm">
+        <div className="flex items-center justify-between px-4 text-base">
           <span className="text-muted-foreground">Thrill</span>
           <div className="flex gap-1">
             {Array.from({ length: 5 }, (_, i) => (
@@ -154,11 +154,11 @@ export const RideInspector = () => {
           </div>
         </div>
         <div className="px-4">
-          <div className="mb-1 flex items-center justify-between text-sm">
+          <div className="mb-1 flex items-center justify-between text-base">
             <span className="text-muted-foreground">Dirt</span>
             <span
               className={cn(
-                'font-heading text-sm',
+                'font-heading text-base',
                 ride.dirtLevel > 70 ? 'text-red-400' : ride.dirtLevel > 40 ? 'text-yellow-400' : 'text-green-400'
               )}
             >
@@ -188,16 +188,16 @@ export const RideInspector = () => {
       </Card>
 
       <Card size="sm" className="gap-3 py-4 shadow-none">
-        <div className="text-muted-foreground flex items-center gap-2 px-4 text-xs font-bold tracking-wider uppercase">
-          <ArrowUp size={12} className="text-neon-cyan" />
+        <div className="text-muted-foreground flex items-center gap-2 px-4 text-sm font-bold tracking-wider uppercase">
+          <ArrowUp className="text-neon-cyan size-3.5 shrink-0" aria-hidden />
           Level Up
         </div>
         <Separator />
         {isMaxLevel ? (
-          <div className="text-neon-green px-4 text-center text-sm font-medium">MAX LEVEL</div>
+          <div className="text-neon-green px-4 text-center text-base font-medium">MAX LEVEL</div>
         ) : (
           <div className="flex flex-col gap-3 px-4">
-            <div className="text-muted-foreground space-y-1 text-xs">
+            <div className="text-muted-foreground space-y-1 text-sm">
               <div className="flex justify-between">
                 <span>Capacity</span>
                 <span>
@@ -222,7 +222,7 @@ export const RideInspector = () => {
               )}
               aria-label={`Level up ${def.name} for ${formatMoney(levelUpCost)}`}
             >
-              <ArrowUp size={14} />
+              <ArrowUp className="size-4 shrink-0" aria-hidden />
               Level {ride.level + 1} — {formatMoney(levelUpCost)}
             </Button>
           </div>
@@ -240,15 +240,15 @@ export const RideInspector = () => {
         )}
         aria-label={ride.status === 'broken' ? `Repair ${def.name}` : `Repair ${def.name} (ride is not broken)`}
       >
-        <Wrench size={16} />
+        <Wrench className="size-5 shrink-0" aria-hidden />
         Repair Now
       </Button>
 
       {ride.status === 'repairing' && (
         <Card size="sm" className="gap-2 border-yellow-500/30 bg-yellow-500/10 py-3 shadow-none">
-          <div className="flex items-center justify-between text-sm text-yellow-400">
+          <div className="flex items-center justify-between text-base text-yellow-400">
             <span className="flex items-center gap-1.5 font-bold uppercase">
-              <Wrench size={14} />
+              <Wrench className="size-4 shrink-0" aria-hidden />
               {ride.isAutoRepair ? 'Auto Repair' : 'Repairing'}
             </span>
             <span className="font-heading">{Math.round(ride.repairProgress)}%</span>
@@ -264,8 +264,8 @@ export const RideInspector = () => {
 
       {rideUpgrades.length > 0 && (
         <Card size="sm" className="gap-2 py-4 shadow-none">
-          <div className="text-muted-foreground flex items-center gap-2 px-4 text-xs font-bold tracking-wider uppercase">
-            <Zap size={12} className="text-neon-violet" />
+          <div className="text-muted-foreground flex items-center gap-2 px-4 text-sm font-bold tracking-wider uppercase">
+            <Zap className="text-neon-violet size-3.5 shrink-0" aria-hidden />
             Ride Upgrades
           </div>
           <Separator />
@@ -293,26 +293,26 @@ export const RideInspector = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-sm font-bold">{upgrade.name}</span>
-                        <Badge variant="secondary" className="text-muted-foreground text-xs">
+                        <span className="text-base font-bold">{upgrade.name}</span>
+                        <Badge variant="secondary" className="text-muted-foreground text-sm">
                           {EFFECT_LABELS[upgrade.effect] ?? upgrade.effect}
                         </Badge>
                       </div>
-                      <div className="text-muted-foreground mt-0.5 text-xs">{upgrade.description}</div>
+                      <div className="text-muted-foreground mt-0.5 text-sm">{upgrade.description}</div>
                       {!prereqMet && prereqUpgrade && (
-                        <div className="mt-1 flex items-center gap-1 text-xs text-yellow-500/80">
-                          <Lock size={10} />
+                        <div className="mt-1 flex items-center gap-1 text-sm text-yellow-500/80">
+                          <Lock className="size-3 shrink-0" aria-hidden />
                           Requires: {prereqUpgrade.name}
                         </div>
                       )}
                     </div>
                     <div className="shrink-0">
                       {isPurchased ? (
-                        <CheckCircle size={16} className="text-green-400" />
+                        <CheckCircle className="size-5 shrink-0 text-green-400" aria-hidden />
                       ) : (
                         <span
                           className={cn(
-                            'text-sm font-black',
+                            'text-base font-black',
                             canAfford && isAvailable ? 'text-neon-violet' : 'text-muted-foreground'
                           )}
                         >

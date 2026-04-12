@@ -14,9 +14,9 @@ export const ParkBatteryBar = () => {
       <Card
         size="sm"
         className={cn(
-          'mx-auto max-w-2xl gap-0 py-2.5 pr-3 pl-3 shadow-xs ring-1 ring-foreground/10 transition-colors',
+          'ring-foreground/10 mx-auto max-w-2xl gap-0 py-2.5 pr-3 pl-3 shadow-xs ring-1 transition-colors',
           canCharge &&
-            'hover:ring-neon-violet/30 cursor-pointer hover:bg-neon-violet/5 focus-within:ring-neon-violet/40'
+            'hover:ring-neon-violet/30 hover:bg-neon-violet/5 focus-within:ring-neon-violet/40 cursor-pointer'
         )}
         role={canCharge ? 'button' : 'region'}
         tabIndex={canCharge ? 0 : undefined}
@@ -34,36 +34,32 @@ export const ParkBatteryBar = () => {
             : `Park battery full at ${Math.round(parkBatteryLevel)} percent`
         }
       >
-        <div className="text-muted-foreground mb-1 flex items-center justify-between text-xs">
+        <div className="text-muted-foreground mb-1 flex items-center justify-between text-sm">
           <span className="flex items-center gap-1.5 font-semibold tracking-wider uppercase">
             <Battery
-              size={14}
-              className={parkBatteryLevel > 30 ? 'text-neon-cyan' : 'text-amber-400'}
+              className={cn('size-4 shrink-0', parkBatteryLevel > 30 ? 'text-neon-cyan' : 'text-amber-400')}
               aria-hidden
             />
             Park power
           </span>
           <span className="tabular-nums">{Math.round(parkBatteryLevel)}%</span>
         </div>
-        <div className="pixel-bar bg-muted h-2.5 overflow-hidden rounded-sm">
+        <div className="pixel-bar bg-muted h-3 overflow-hidden rounded-sm">
           <div
             className="h-full transition-all duration-300"
             style={{
               width: `${parkBatteryLevel}%`,
               background: parkBatteryLevel > 40 ? '#22d3ee' : parkBatteryLevel > 15 ? '#eab308' : '#f97316',
-              boxShadow:
-                parkBatteryLevel > 0
-                  ? `0 0 8px ${parkBatteryLevel > 40 ? '#22d3ee' : '#f59e0b'}`
-                  : undefined,
+              boxShadow: parkBatteryLevel > 0 ? `0 0 8px ${parkBatteryLevel > 40 ? '#22d3ee' : '#f59e0b'}` : undefined,
             }}
           />
         </div>
         {canCharge ? (
-          <span className="text-muted-foreground mt-1 block text-center text-[10px] tracking-wide">
+          <span className="text-muted-foreground mt-1 block text-center text-xs tracking-wide">
             Tap to charge — powers all rides
           </span>
         ) : (
-          <span className="text-muted-foreground mt-1 block text-center text-[10px] tracking-wide">Fully charged</span>
+          <span className="text-muted-foreground mt-1 block text-center text-xs tracking-wide">Fully charged</span>
         )}
       </Card>
     </div>

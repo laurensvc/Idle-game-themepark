@@ -131,9 +131,7 @@ describe('gameStore', () => {
       parkBatteryLevel: RIDE_BATTERY_DRAIN_PER_TICK,
       rides: useGameStore
         .getState()
-        .rides.map((r) =>
-          r.instanceId === instanceId ? { ...r, status: 'operating' as const } : r
-        ),
+        .rides.map((r) => (r.instanceId === instanceId ? { ...r, status: 'operating' as const } : r)),
     });
     useGameStore.getState().tick();
     const ride = useGameStore.getState().rides.find((r) => r.instanceId === instanceId)!;

@@ -43,8 +43,8 @@ export const VisitorPanel = () => {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users size={16} className="text-neon-cyan" />
-          <span className="text-muted-foreground text-sm font-bold tracking-wider uppercase">Guests</span>
+          <Users className="text-neon-cyan size-5 shrink-0" aria-hidden />
+          <span className="text-muted-foreground text-base font-bold tracking-wider uppercase">Guests</span>
         </div>
         <span className="font-heading text-neon-cyan text-xl font-black">{totalVisitors}</span>
       </div>
@@ -56,9 +56,9 @@ export const VisitorPanel = () => {
           const pct = totalVisitors > 0 ? (count / totalVisitors) * 100 : 0;
           return (
             <div key={type} className="flex items-center gap-2">
-              <span className="w-6 text-base">{cfg.icon}</span>
+              <span className="w-8 text-lg">{cfg.icon}</span>
               <div className="flex-1">
-                <div className="text-muted-foreground mb-0.5 flex justify-between text-xs">
+                <div className="text-muted-foreground mb-0.5 flex justify-between text-sm">
                   <span>{cfg.label}</span>
                   <span className="font-bold" style={{ color: cfg.color }}>
                     {count}
@@ -85,8 +85,8 @@ export const VisitorPanel = () => {
       <div>
         <div className="mb-1.5 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <Heart size={14} style={{ color: happinessColor }} />
-            <span className="text-muted-foreground text-xs tracking-wider uppercase">Happiness</span>
+            <Heart className="size-4 shrink-0" style={{ color: happinessColor }} aria-hidden />
+            <span className="text-muted-foreground text-sm tracking-wider uppercase">Happiness</span>
           </div>
           <span className="text-base font-bold" style={{ color: happinessColor }}>
             {avgHappiness}%
@@ -102,7 +102,7 @@ export const VisitorPanel = () => {
             }}
           />
         </div>
-        <p className="text-muted-foreground mt-1 text-xs">
+        <p className="text-muted-foreground mt-1 text-sm">
           {avgHappiness >= 80
             ? 'Guests are ecstatic!'
             : avgHappiness >= 60
@@ -115,7 +115,7 @@ export const VisitorPanel = () => {
 
       <Card size="sm" className="gap-2 py-3 shadow-none">
         <div className="mb-1.5 flex items-center justify-between px-1">
-          <span className="text-muted-foreground text-xs tracking-wider uppercase">Park Cleanliness</span>
+          <span className="text-muted-foreground text-sm tracking-wider uppercase">Park Cleanliness</span>
           <span
             className={cn(
               'text-base font-bold',
@@ -151,7 +151,7 @@ export const VisitorPanel = () => {
           🧹 Clean Park
         </Button>
         {isAutoCleanEnabled && (
-          <div className="text-muted-foreground mt-1 flex items-center gap-1 text-xs text-green-400/90">
+          <div className="text-muted-foreground mt-1 flex items-center gap-1 text-sm text-green-400/90">
             <span>✓</span>
             <span>Janitor on duty — auto-cleaning</span>
           </div>

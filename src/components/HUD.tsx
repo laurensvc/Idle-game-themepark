@@ -53,20 +53,23 @@ const StatPill = memo(({ icon, label, value, borderAccent, animate = true, count
   >
     <span className="text-muted-foreground">{icon}</span>
     <div className="flex min-w-0 flex-col leading-none">
-      <span className="text-muted-foreground text-[10px] font-medium tracking-widest uppercase">{label}</span>
+      <span className="text-muted-foreground text-xs font-medium tracking-widest uppercase">{label}</span>
       {countUp ? (
         <CountUp
           to={countUp.to}
           formatDisplay={countUp.formatDisplay}
           separator={countUp.separator ?? ''}
           duration={countUp.duration ?? HUD_COUNT_DURATION}
-          className="font-heading text-foreground inline-block text-sm font-bold tabular-nums"
+          className="font-heading text-foreground inline-block text-base font-bold tabular-nums"
           startWhen
         />
       ) : (
         <span
           key={animate ? value : undefined}
-          className={cn('font-heading text-foreground inline-block text-sm font-bold', animate && 'animate-juicy-pop')}
+          className={cn(
+            'font-heading text-foreground inline-block text-base font-bold',
+            animate && 'animate-juicy-pop'
+          )}
         >
           {value}
         </span>
@@ -78,10 +81,10 @@ const StatPill = memo(({ icon, label, value, borderAccent, animate = true, count
 StatPill.displayName = 'StatPill';
 
 const statIcons = {
-  cash: <DollarSign size={16} className="text-neon-orange" />,
-  guests: <Users size={16} className="text-neon-cyan" />,
-  earned: <TrendingUp size={16} className="text-neon-violet" />,
-  time: <Clock size={16} className="text-muted-foreground" />,
+  cash: <DollarSign className="text-neon-orange size-5 shrink-0" aria-hidden />,
+  guests: <Users className="text-neon-cyan size-5 shrink-0" aria-hidden />,
+  earned: <TrendingUp className="text-neon-violet size-5 shrink-0" aria-hidden />,
+  time: <Clock className="text-muted-foreground size-5 shrink-0" aria-hidden />,
 } as const;
 
 export const HUD = () => {
@@ -125,17 +128,20 @@ export const HUD = () => {
   const dirtColor = parkDirt <= 30 ? 'text-green-400' : parkDirt <= 60 ? 'text-yellow-400' : 'text-red-400';
   const dirtLabel = parkDirt <= 20 ? 'Sparkling' : parkDirt <= 40 ? 'Clean' : parkDirt <= 70 ? 'Dirty' : 'Filthy';
 
-  const happyIcon = useMemo(() => <Heart size={14} className={happinessColor} />, [happinessColor]);
+  const happyIcon = useMemo(
+    () => <Heart className={cn('size-4 shrink-0', happinessColor)} aria-hidden />,
+    [happinessColor]
+  );
   const dirtIcon = useMemo(() => <span className={cn('text-xs font-bold', dirtColor)}>🧹</span>, [dirtColor]);
 
   return (
-    <header className="bg-card/80 flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2 backdrop-blur-md">
+    <header className="bg-card/80 flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 backdrop-blur-md">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="font-heading neon-text-purple text-neon-violet text-lg font-black tracking-tight sm:text-xl">
+        <div className="font-heading neon-text-purple text-neon-violet text-xl font-black tracking-tight sm:text-2xl">
           IDLE<span className="neon-text-orange text-neon-orange">PARK</span>
         </div>
-        <Separator orientation="vertical" className="hidden h-8 sm:block" />
-        <div className="text-muted-foreground hidden text-xs font-medium tracking-widest uppercase sm:block">
+        <Separator orientation="vertical" className="hidden h-9 sm:block" />
+        <div className="text-muted-foreground hidden text-sm font-medium tracking-widest uppercase sm:block">
           Theme Park Tycoon
         </div>
       </div>
@@ -198,12 +204,16 @@ export const HUD = () => {
           size="sm"
           onClick={togglePause}
           className={cn(
-            'font-heading gap-1.5 text-xs',
+            'font-heading gap-1.5 text-sm',
             isPaused && 'bg-neon-orange text-primary-foreground hover:bg-neon-orange/90'
           )}
           aria-label={isPaused ? 'Resume game' : 'Pause game'}
         >
-          {isPaused ? <Play size={14} /> : <Pause size={14} />}
+          {isPaused ? (
+            <Play className="size-4 shrink-0" aria-hidden />
+          ) : (
+            <Pause className="size-4 shrink-0" aria-hidden />
+          )}
           {isPaused ? 'PAUSED' : 'PAUSE'}
         </Button>
 
@@ -216,12 +226,16 @@ export const HUD = () => {
             aria-label={isAudioMuted ? 'Unmute audio' : 'Mute audio'}
             title={isAudioMuted ? 'Audio muted' : 'Audio enabled'}
           >
-            {isAudioMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            {isAudioMuted ? (
+              <VolumeX className="size-4 shrink-0" aria-hidden />
+            ) : (
+              <Volume2 className="size-4 shrink-0" aria-hidden />
+            )}
           </Button>
-          <Separator orientation="vertical" className="h-8" />
-          <div className="flex min-w-[7rem] flex-col gap-2">
+          <Separator orientation="vertical" className="h-9" />
+          <div className="flex min-w-34 flex-col gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground w-6 text-[9px] tracking-wide uppercase">SFX</span>
+              <span className="text-muted-foreground w-8 text-xs tracking-wide uppercase">SFX</span>
               <Slider
                 value={[Math.round(sfxVolume * 100)]}
                 max={100}
@@ -232,7 +246,7 @@ export const HUD = () => {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Music size={12} className="text-muted-foreground shrink-0" aria-hidden />
+              <Music className="text-muted-foreground size-3.5 shrink-0" aria-hidden />
               <Slider
                 value={[Math.round(musicVolume * 100)]}
                 max={100}

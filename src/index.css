@@ -113,7 +113,7 @@ body,
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 0.5rem;
 }
 ::-webkit-scrollbar-track {
   background: #12122a;
@@ -462,13 +462,16 @@ body,
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply font-sans;
+    /* Scale rem-based Tailwind utilities (~25% larger UI vs 16px default) */
+    font-size: 125%;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
-    font-size: 1.25rem;
+    font-size: 1rem;
+    line-height: 1.45;
     overflow: hidden;
-  }
-  html {
-    @apply font-sans;
   }
 }

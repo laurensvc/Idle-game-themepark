@@ -13,18 +13,18 @@ import { ViewTransition } from 'react';
 
 <ViewTransition>
   <Component />
-</ViewTransition>
+</ViewTransition>;
 ```
 
 React auto-assigns a unique `view-transition-name` and calls `document.startViewTransition` behind the scenes. Never call `startViewTransition` yourself.
 
 ### Animation Triggers
 
-| Trigger    | When it fires                                                      |
-| ---------- | ------------------------------------------------------------------ |
-| **enter**  | VT first inserted during a Transition                              |
-| **exit**   | VT first removed during a Transition                               |
-| **update** | DOM mutations inside a VT (innermost wins with nested VTs)         |
+| Trigger    | When it fires                                                            |
+| ---------- | ------------------------------------------------------------------------ |
+| **enter**  | VT first inserted during a Transition                                    |
+| **exit**   | VT first removed during a Transition                                     |
+| **update** | DOM mutations inside a VT (innermost wins with nested VTs)               |
 | **share**  | Named VT unmounts and another with same `name` mounts in same Transition |
 
 Only `startTransition`, `useDeferredValue`, or `Suspense` activate VTs. Regular `setState` does not animate.
@@ -108,6 +108,7 @@ Same `name` on two VTs — one unmounting, one mounting — creates a shared ele
 ```
 
 **Rules:**
+
 - Only one VT with a given `name` can be mounted at a time — use unique names (`photo-${id}`)
 - `share` takes precedence over `enter`/`exit`
 - Never use fade-out exit on pages with shared morphs — use directional slide
@@ -119,21 +120,25 @@ Same `name` on two VTs — one unmounting, one mounting — creates a shared ele
 ### Enter/Exit
 
 ```jsx
-{show && (
-  <ViewTransition enter="fade-in" exit="fade-out">
-    <Panel />
-  </ViewTransition>
-)}
+{
+  show && (
+    <ViewTransition enter="fade-in" exit="fade-out">
+      <Panel />
+    </ViewTransition>
+  );
+}
 ```
 
 ### List Reorder
 
 ```jsx
-{items.map((item) => (
-  <ViewTransition key={item.id}>
-    <ItemCard item={item} />
-  </ViewTransition>
-))}
+{
+  items.map((item) => (
+    <ViewTransition key={item.id}>
+      <ItemCard item={item} />
+    </ViewTransition>
+  ));
+}
 ```
 
 Trigger inside `startTransition`. Avoid wrapper `<div>`s between list and VT.
@@ -164,7 +169,11 @@ Directional reveal:
 
 ```jsx
 <Suspense
-  fallback={<ViewTransition exit="slide-down"><Skeleton /></ViewTransition>}
+  fallback={
+    <ViewTransition exit="slide-down">
+      <Skeleton />
+    </ViewTransition>
+  }
 >
   <ViewTransition enter="slide-up" default="none">
     <Content />
@@ -179,7 +188,10 @@ Directional reveal:
 ```
 
 ```css
-::view-transition-group(site-header) { animation: none; z-index: 100; }
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
 ```
 
 ---
@@ -203,7 +215,9 @@ They coexist because they fire at different moments. `default="none"` on both pr
 
 ```js
 // next.config.js
-experimental: { viewTransition: true }
+experimental: {
+  viewTransition: true;
+}
 ```
 
 Wraps every `<Link>` navigation in `document.startViewTransition`. Requires `react@canary`.
@@ -260,26 +274,57 @@ Page stays mounted — enter/exit never fire. Use `key` + `name` + `share`:
 ### Shared Keyframes
 
 ```css
-@keyframes fade { from { filter: blur(3px); opacity: 0; } to { filter: blur(0); opacity: 1; } }
-@keyframes slide { from { translate: var(--slide-offset); } to { translate: 0; } }
-@keyframes slide-y { from { transform: translateY(var(--slide-y-offset, 10px)); } to { transform: translateY(0); } }
+@keyframes fade {
+  from {
+    filter: blur(3px);
+    opacity: 0;
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+@keyframes slide {
+  from {
+    translate: var(--slide-offset);
+  }
+  to {
+    translate: 0;
+  }
+}
+@keyframes slide-y {
+  from {
+    transform: translateY(var(--slide-y-offset, 10px));
+  }
+  to {
+    transform: translateY(0);
+  }
+}
 ```
 
 ### Fade
 
 ```css
-::view-transition-old(.fade-out) { animation: var(--duration-exit) ease-in fade reverse; }
-::view-transition-new(.fade-in) { animation: var(--duration-enter) ease-out var(--duration-exit) both fade; }
+::view-transition-old(.fade-out) {
+  animation: var(--duration-exit) ease-in fade reverse;
+}
+::view-transition-new(.fade-in) {
+  animation: var(--duration-enter) ease-out var(--duration-exit) both fade;
+}
 ```
 
 ### Slide (Vertical)
 
 ```css
 ::view-transition-old(.slide-down) {
-  animation: var(--duration-exit) ease-out both fade reverse, var(--duration-exit) ease-out both slide-y reverse;
+  animation:
+    var(--duration-exit) ease-out both fade reverse,
+    var(--duration-exit) ease-out both slide-y reverse;
 }
 ::view-transition-new(.slide-up) {
-  animation: var(--duration-enter) ease-in var(--duration-exit) both fade, var(--duration-move) ease-in both slide-y;
+  animation:
+    var(--duration-enter) ease-in var(--duration-exit) both fade,
+    var(--duration-move) ease-in both slide-y;
 }
 ```
 
@@ -288,41 +333,64 @@ Page stays mounted — enter/exit never fire. Use `key` + `name` + `share`:
 ```css
 ::view-transition-old(.nav-forward) {
   --slide-offset: -60px;
-  animation: var(--duration-exit) ease-in both fade reverse, var(--duration-move) ease-in-out both slide reverse;
+  animation:
+    var(--duration-exit) ease-in both fade reverse,
+    var(--duration-move) ease-in-out both slide reverse;
 }
 ::view-transition-new(.nav-forward) {
   --slide-offset: 60px;
-  animation: var(--duration-enter) ease-out var(--duration-exit) both fade, var(--duration-move) ease-in-out both slide;
+  animation:
+    var(--duration-enter) ease-out var(--duration-exit) both fade,
+    var(--duration-move) ease-in-out both slide;
 }
 ::view-transition-old(.nav-back) {
   --slide-offset: 60px;
-  animation: var(--duration-exit) ease-in both fade reverse, var(--duration-move) ease-in-out both slide reverse;
+  animation:
+    var(--duration-exit) ease-in both fade reverse,
+    var(--duration-move) ease-in-out both slide reverse;
 }
 ::view-transition-new(.nav-back) {
   --slide-offset: -60px;
-  animation: var(--duration-enter) ease-out var(--duration-exit) both fade, var(--duration-move) ease-in-out both slide;
+  animation:
+    var(--duration-enter) ease-out var(--duration-exit) both fade,
+    var(--duration-move) ease-in-out both slide;
 }
 ```
 
 ### Shared Element Morph
 
 ```css
-::view-transition-group(.morph) { animation-duration: var(--duration-move); }
-::view-transition-image-pair(.morph) { animation-name: via-blur; }
-@keyframes via-blur { 30% { filter: blur(3px); } }
+::view-transition-group(.morph) {
+  animation-duration: var(--duration-move);
+}
+::view-transition-image-pair(.morph) {
+  animation-name: via-blur;
+}
+@keyframes via-blur {
+  30% {
+    filter: blur(3px);
+  }
+}
 ```
 
 ### Persistent Element Isolation
 
 ```css
-::view-transition-group(persistent-nav) { animation: none; z-index: 100; }
+::view-transition-group(persistent-nav) {
+  animation: none;
+  z-index: 100;
+}
 ```
 
 ### Backdrop-Blur Workaround
 
 ```css
-::view-transition-old(persistent-nav) { display: none; }
-::view-transition-new(persistent-nav) { animation: none; }
+::view-transition-old(persistent-nav) {
+  display: none;
+}
+::view-transition-new(persistent-nav) {
+  animation: none;
+}
 ```
 
 ---

@@ -40,8 +40,8 @@ export const ShopPanel = () => {
       {availableRides.length > 0 && (
         <section>
           <div className="text-muted-foreground mb-2 flex items-center gap-2">
-            <ShoppingBag size={14} className="text-neon-orange" />
-            <span className="text-xs font-semibold tracking-widest uppercase">Build Rides</span>
+            <ShoppingBag className="text-neon-orange size-4 shrink-0" aria-hidden />
+            <span className="text-sm font-semibold tracking-widest uppercase">Build Rides</span>
           </div>
           <div className="flex flex-col gap-2">
             {availableRides.map((def) => {
@@ -62,8 +62,8 @@ export const ShopPanel = () => {
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{def.icon}</span>
                       <div>
-                        <div className="text-sm font-bold">{def.name}</div>
-                        <div className="text-muted-foreground mt-0.5 max-w-[160px] truncate text-xs">
+                        <div className="text-base font-bold">{def.name}</div>
+                        <div className="text-muted-foreground mt-0.5 max-w-[11rem] truncate text-sm">
                           {def.description}
                         </div>
                       </div>
@@ -81,7 +81,7 @@ export const ShopPanel = () => {
                         className={cn('h-1.5 w-3 rounded-sm', i < def.thrillLevel ? 'bg-neon-orange' : 'bg-muted')}
                       />
                     ))}
-                    <span className="text-muted-foreground ml-1.5 text-xs">thrill</span>
+                    <span className="text-muted-foreground ml-1.5 text-sm">thrill</span>
                   </div>
                 </Button>
               );
@@ -92,8 +92,8 @@ export const ShopPanel = () => {
 
       <section>
         <div className="text-muted-foreground mb-2 flex items-center gap-2">
-          <ChevronRight size={14} className="text-neon-violet" />
-          <span className="text-xs font-semibold tracking-widest uppercase">Upgrades</span>
+          <ChevronRight className="text-neon-violet size-4 shrink-0" aria-hidden />
+          <span className="text-sm font-semibold tracking-widest uppercase">Upgrades</span>
         </div>
         <div className="flex flex-col gap-2">
           {UPGRADE_DEFINITIONS.map((upgrade) => {
@@ -124,26 +124,26 @@ export const ShopPanel = () => {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {rideDef && <span className="text-base leading-none">{rideDef.icon}</span>}
-                      <span className="truncate text-sm font-bold">{upgrade.name}</span>
-                      <Badge variant="secondary" className="text-xs">
+                      <span className="truncate text-base font-bold">{upgrade.name}</span>
+                      <Badge variant="secondary" className="text-sm">
                         {EFFECT_LABELS[upgrade.effect] ?? upgrade.effect}
                       </Badge>
                     </div>
-                    <div className="text-muted-foreground mt-0.5 text-xs">{upgrade.description}</div>
+                    <div className="text-muted-foreground mt-0.5 text-sm">{upgrade.description}</div>
                     {!prereqMet && prereqUpgrade && (
-                      <div className="mt-0.5 flex items-center gap-1 text-xs text-yellow-500/80">
-                        <Lock size={10} />
+                      <div className="mt-0.5 flex items-center gap-1 text-sm text-yellow-500/80">
+                        <Lock className="size-3 shrink-0" aria-hidden />
                         Requires: {prereqUpgrade.name}
                       </div>
                     )}
                   </div>
                   <div className="shrink-0">
                     {isPurchased ? (
-                      <CheckCircle size={16} className="text-green-400" />
+                      <CheckCircle className="size-5 shrink-0 text-green-400" aria-hidden />
                     ) : (
                       <span
                         className={cn(
-                          'text-sm font-black',
+                          'text-base font-black',
                           canAfford && isAvailable ? 'text-neon-violet' : 'text-muted-foreground'
                         )}
                       >

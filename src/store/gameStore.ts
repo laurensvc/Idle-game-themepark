@@ -62,9 +62,7 @@ function promoteIdleRidesWhenParkPowered(rides: Ride[]): Ride[] {
 }
 
 function idleAllOperatingRides(rides: Ride[]): Ride[] {
-  return rides.map((r) =>
-    r.status === 'operating' ? { ...r, status: 'idle' as const, currentVisitors: 0 } : r
-  );
+  return rides.map((r) => (r.status === 'operating' ? { ...r, status: 'idle' as const, currentVisitors: 0 } : r));
 }
 
 function createNotification(type: Notification['type'], message: string, rideInstanceId?: string): Notification {
@@ -429,8 +427,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     if (state.parkBatteryLevel >= 100) return;
 
     const nextParkBatteryLevel = Math.min(100, state.parkBatteryLevel + RIDE_BATTERY_CHARGE_PER_CLICK);
-    const rides =
-      nextParkBatteryLevel > 0 ? promoteIdleRidesWhenParkPowered(state.rides) : state.rides;
+    const rides = nextParkBatteryLevel > 0 ? promoteIdleRidesWhenParkPowered(state.rides) : state.rides;
 
     set({
       parkBatteryLevel: nextParkBatteryLevel,
@@ -542,8 +539,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const state = get();
     if (state.isPaused) return 0;
     const gain =
-      TICKET_BOOTH_CASH_MIN +
-      Math.floor(Math.random() * (TICKET_BOOTH_CASH_MAX - TICKET_BOOTH_CASH_MIN + 1));
+      TICKET_BOOTH_CASH_MIN + Math.floor(Math.random() * (TICKET_BOOTH_CASH_MAX - TICKET_BOOTH_CASH_MIN + 1));
     set({
       money: state.money + gain,
       stats: { ...state.stats, totalEarnings: state.stats.totalEarnings + gain },

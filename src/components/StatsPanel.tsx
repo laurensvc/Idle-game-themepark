@@ -33,7 +33,7 @@ interface StatRowProps {
 
 const StatRow = ({ icon, label, value, countUp }: StatRowProps) => (
   <div className="border-border/60 flex items-center justify-between border-b py-2 last:border-0">
-    <div className="text-muted-foreground flex items-center gap-2 text-xs">
+    <div className="text-muted-foreground flex items-center gap-2 text-sm">
       {icon}
       <span className="tracking-wider uppercase">{label}</span>
     </div>
@@ -43,11 +43,11 @@ const StatRow = ({ icon, label, value, countUp }: StatRowProps) => (
         formatDisplay={countUp.formatDisplay}
         separator={countUp.separator ?? ''}
         duration={PANEL_COUNT_DURATION}
-        className="text-foreground text-sm font-bold tabular-nums"
+        className="text-foreground text-base font-bold tabular-nums"
         startWhen
       />
     ) : (
-      <span className="text-foreground text-sm font-bold">{value}</span>
+      <span className="text-foreground text-base font-bold">{value}</span>
     )}
   </div>
 );
@@ -67,32 +67,32 @@ export const StatsPanel = () => {
   return (
     <div className="flex flex-col gap-3">
       <div className="text-muted-foreground flex items-center gap-2">
-        <BarChart2 size={14} className="text-neon-violet" />
-        <span className="text-xs font-semibold tracking-widest uppercase">Park Stats</span>
+        <BarChart2 className="text-neon-violet size-4 shrink-0" aria-hidden />
+        <span className="text-sm font-semibold tracking-widest uppercase">Park Stats</span>
       </div>
 
       <Card size="sm" className="gap-0 py-3 shadow-none">
         <div className="px-4">
           <StatRow
-            icon={<span className="text-neon-orange text-sm">$</span>}
+            icon={<span className="text-neon-orange text-base">$</span>}
             label="Total Earned"
             value={formatMoney(stats.totalEarnings)}
             countUp={{ to: stats.totalEarnings, formatDisplay: formatMoneyCount }}
           />
           <StatRow
-            icon={<Trophy size={12} className="text-yellow-400" />}
+            icon={<Trophy className="size-3.5 shrink-0 text-yellow-400" aria-hidden />}
             label="Peak Guests"
             value={String(stats.peakVisitors)}
             countUp={{ to: stats.peakVisitors, separator: ',' }}
           />
           <StatRow
-            icon={<Wrench size={12} className="text-muted-foreground" />}
+            icon={<Wrench className="text-muted-foreground size-3.5 shrink-0" aria-hidden />}
             label="Rides Fixed"
             value={String(stats.ridesFixed)}
             countUp={{ to: stats.ridesFixed, separator: ',' }}
           />
           <StatRow
-            icon={<Clock size={12} className="text-muted-foreground" />}
+            icon={<Clock className="text-muted-foreground size-3.5 shrink-0" aria-hidden />}
             label="Time Played"
             value={formatTime(stats.timePlayed)}
             countUp={{ to: stats.timePlayed, formatDisplay: formatTimeCount }}
@@ -101,37 +101,37 @@ export const StatsPanel = () => {
       </Card>
 
       <div>
-        <div className="text-muted-foreground mb-2 text-xs tracking-wider uppercase">Ride Status</div>
+        <div className="text-muted-foreground mb-2 text-sm tracking-wider uppercase">Ride Status</div>
         <div className="grid grid-cols-3 gap-2">
           <Card size="sm" className="gap-1 border-green-500/20 bg-green-500/10 py-3 text-center shadow-none ring-0">
             <CountUp
               to={operatingRides}
               separator=","
               duration={PANEL_COUNT_DURATION}
-              className="font-heading text-xl font-black text-green-400 tabular-nums"
+              className="font-heading text-2xl font-black text-green-400 tabular-nums"
               startWhen
             />
-            <div className="text-xs tracking-wide text-green-400/80 uppercase">Open</div>
+            <div className="text-sm tracking-wide text-green-400/80 uppercase">Open</div>
           </Card>
           <Card size="sm" className="gap-1 border-red-500/20 bg-red-500/10 py-3 text-center shadow-none ring-0">
             <CountUp
               to={brokenRides}
               separator=","
               duration={PANEL_COUNT_DURATION}
-              className="font-heading text-xl font-black text-red-400 tabular-nums"
+              className="font-heading text-2xl font-black text-red-400 tabular-nums"
               startWhen
             />
-            <div className="text-xs tracking-wide text-red-400/80 uppercase">Broken</div>
+            <div className="text-sm tracking-wide text-red-400/80 uppercase">Broken</div>
           </Card>
           <Card size="sm" className="gap-1 border-yellow-500/20 bg-yellow-500/10 py-3 text-center shadow-none ring-0">
             <CountUp
               to={repairingRides}
               separator=","
               duration={PANEL_COUNT_DURATION}
-              className="font-heading text-xl font-black text-yellow-400 tabular-nums"
+              className="font-heading text-2xl font-black text-yellow-400 tabular-nums"
               startWhen
             />
-            <div className="text-xs tracking-wide text-yellow-400/80 uppercase">Repair</div>
+            <div className="text-sm tracking-wide text-yellow-400/80 uppercase">Repair</div>
           </Card>
         </div>
       </div>

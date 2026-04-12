@@ -20,7 +20,7 @@ const STATUS_CONFIG = {
     color: 'text-green-400',
     badgeClass: 'border-green-500/40 bg-green-500/10 text-green-400',
     bgClass: 'bg-green-500/5',
-    icon: <CheckCircle size={12} />,
+    icon: <CheckCircle className="size-3.5 shrink-0" aria-hidden />,
     dot: 'bg-green-400',
     dotGlow: 'shadow-[0_0_6px_#22c55e]',
   },
@@ -29,7 +29,7 @@ const STATUS_CONFIG = {
     color: 'text-red-400',
     badgeClass: 'border-red-500/40 bg-red-500/10 text-red-400',
     bgClass: 'bg-red-500/5',
-    icon: <AlertTriangle size={12} />,
+    icon: <AlertTriangle className="size-3.5 shrink-0" aria-hidden />,
     dot: 'bg-red-400',
     dotGlow: 'shadow-[0_0_6px_#ef4444]',
   },
@@ -38,7 +38,7 @@ const STATUS_CONFIG = {
     color: 'text-yellow-400',
     badgeClass: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400',
     bgClass: 'bg-yellow-500/5',
-    icon: <Wrench size={12} />,
+    icon: <Wrench className="size-3.5 shrink-0" aria-hidden />,
     dot: 'bg-yellow-400',
     dotGlow: 'shadow-[0_0_6px_#eab308]',
   },
@@ -47,7 +47,7 @@ const STATUS_CONFIG = {
     color: 'text-amber-400',
     badgeClass: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
     bgClass: 'bg-amber-500/5',
-    icon: <Zap size={12} className="opacity-80" />,
+    icon: <Zap className="size-3.5 shrink-0 opacity-80" aria-hidden />,
     dot: 'bg-amber-400',
     dotGlow: 'shadow-[0_0_6px_#f59e0b]',
   },
@@ -113,11 +113,11 @@ export const RideCard = ({ ride }: RideCardProps) => {
           <span className="text-3xl leading-none">{def.icon}</span>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm leading-none font-bold">{def.name}</span>
+              <span className="text-base leading-none font-bold">{def.name}</span>
               {ride.level > 1 && (
                 <Badge
                   variant="outline"
-                  className="font-heading border-neon-cyan/50 text-neon-cyan px-1 py-0 text-[10px]"
+                  className="font-heading border-neon-cyan/50 text-neon-cyan px-1.5 py-0 text-xs"
                 >
                   L{ride.level}
                 </Badge>
@@ -150,25 +150,25 @@ export const RideCard = ({ ride }: RideCardProps) => {
             variant="secondary"
             className="border-neon-purple/40 bg-neon-purple/15 text-neon-violet shrink-0 gap-1"
           >
-            <Zap size={12} />
+            <Zap className="size-3.5 shrink-0" aria-hidden />
             AUTO
           </Badge>
         )}
       </div>
 
       {parkBatteryLevel <= 0 && ride.status === 'idle' && (
-        <p className="text-muted-foreground mb-2 text-[10px] leading-snug tracking-wide">
+        <p className="text-muted-foreground mb-2 text-xs leading-snug tracking-wide">
           Park power empty — charge the bar above.
         </p>
       )}
 
       <div className="mb-2 flex items-center gap-1.5">
-        <span className="text-muted-foreground w-10 text-xs tracking-wider uppercase">Thrill</span>
+        <span className="text-muted-foreground w-12 text-sm tracking-wider uppercase">Thrill</span>
         <div className="flex gap-0.5">
           {thrillBars.map((filled, i) => (
             <div
               key={i}
-              className={cn('h-2 w-4 rounded-sm', filled ? 'bg-neon-orange' : 'bg-muted')}
+              className={cn('h-2.5 w-5 rounded-sm', filled ? 'bg-neon-orange' : 'bg-muted')}
               style={filled ? { boxShadow: '0 0 4px #f97316' } : undefined}
             />
           ))}
@@ -177,7 +177,7 @@ export const RideCard = ({ ride }: RideCardProps) => {
 
       {ride.dirtLevel > 0 && (
         <div className="mb-2">
-          <div className="text-muted-foreground mb-0.5 flex justify-between text-xs">
+          <div className="text-muted-foreground mb-0.5 flex justify-between text-sm">
             <span className="tracking-wider uppercase">Dirt</span>
             <span>{Math.round(ride.dirtLevel)}%</span>
           </div>
@@ -194,8 +194,8 @@ export const RideCard = ({ ride }: RideCardProps) => {
       )}
 
       {ride.status === 'operating' && (
-        <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
-          <Users size={12} className="text-neon-cyan" />
+        <div className="text-muted-foreground flex items-center gap-1.5 text-sm">
+          <Users className="text-neon-cyan size-3.5 shrink-0" aria-hidden />
           <span className="font-medium">{ride.currentVisitors}</span>
           <span className="opacity-50">/ {def.baseCapacity} guests</span>
         </div>
@@ -203,9 +203,9 @@ export const RideCard = ({ ride }: RideCardProps) => {
 
       {ride.status === 'repairing' && (
         <div>
-          <div className="mb-0.5 flex justify-between text-xs text-yellow-400">
+          <div className="mb-0.5 flex justify-between text-sm text-yellow-400">
             <span className="flex items-center gap-1 tracking-wider uppercase">
-              <Wrench size={11} />
+              <Wrench className="size-3.5 shrink-0" aria-hidden />
               {ride.isAutoRepair ? 'Auto Repair' : 'Repairing'}
             </span>
             <span>{Math.round(ride.repairProgress)}%</span>
@@ -230,13 +230,13 @@ export const RideCard = ({ ride }: RideCardProps) => {
         onClick={handleRepair}
         aria-label={ride.status === 'broken' ? `Repair ${def.name}` : `Repair ${def.name} (ride is not broken)`}
       >
-        <Wrench size={14} />
+        <Wrench className="size-4 shrink-0" aria-hidden />
         Repair Now
       </Button>
 
       {isSelected && (
         <div className="absolute top-2 right-2">
-          <Settings size={14} className="text-primary animate-spin-slow" aria-hidden />
+          <Settings className="text-primary animate-spin-slow size-4 shrink-0" aria-hidden />
         </div>
       )}
     </Card>
