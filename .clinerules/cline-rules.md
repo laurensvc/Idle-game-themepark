@@ -1,6 +1,7 @@
 Environment: Windows 11, PowerShell, Cursor IDE, Cline with LM Studio local model.
 
 Rules:
+
 - Never output `none` as a command.
 - Never output placeholder commands.
 - If no shell command is needed, say: "No terminal command needed".

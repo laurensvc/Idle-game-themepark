@@ -1,4 +1,3 @@
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useGameStore } from '@/store/gameStore';
 import { TreePine } from 'lucide-react';
 import { memo } from 'react';
@@ -10,7 +9,7 @@ const ParkView: React.FC = memo(() => {
   return (
     <div className="px-3 pb-2">
       {/* Arcade-style decorative divider */}
-      <div className="h-1 mb-3 rounded-lg bg-gradient-to-r from-transparent via-park-yellow/60 to-transparent shadow-inner" />
+      <div className="via-park-yellow/60 mb-3 h-1 rounded-lg bg-linear-to-r from-transparent to-transparent shadow-inner" />
 
       {rides.length === 0 ? (
         <div className="text-muted-foreground/70 border-park-orange/25 flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-16">

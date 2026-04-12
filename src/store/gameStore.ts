@@ -22,6 +22,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 const VISITOR_TYPES: VisitorType[] = ['family', 'thrill_seeker', 'child', 'elderly', 'teen'];
 
+const UPGRADE_BY_ID = new Map(UPGRADE_DEFINITIONS.map((d) => [d.id, d]));
+
 let nextRideInstanceId = 1;
 let nextVisitorId = 1;
 let nextNotificationId = 1;
@@ -30,7 +32,7 @@ let nextBuffId = 1;
 const getUpgradeIncomeMultiplier = (upgrades: PurchasedUpgrade[]): number => {
   let incomeMult = 1;
   for (let i = 0; i < upgrades.length; i++) {
-    const def = UPGRADE_DEFINITIONS.find((d) => d.id === upgrades[i].upgradeId);
+    const def = UPGRADE_BY_ID.get(upgrades[i].upgradeId);
     if (!def || def.effect.type !== 'income_boost') continue;
     incomeMult += def.effect.value;
   }
@@ -117,8 +119,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       let money = state.money;
       let totalMoneyEarned = state.totalMoneyEarned;
       let totalVisitorsServed = state.totalVisitorsServed;
-      const rides = state.rides;
-      const notifications = state.notifications;
+      const prevRides = state.rides;
+      const notifications = [...state.notifications];
       const upgrades = state.upgrades;
 
       const activeBuffsFiltered: ActiveBuff[] = [];
@@ -159,7 +161,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       let incomeMult = getUpgradeIncomeMultiplier(upgrades);
 
       for (let i = 0; i < upgrades.length; i++) {
-        const def = UPGRADE_DEFINITIONS.find((d) => d.id === upgrades[i].upgradeId);
+        const def = UPGRADE_BY_ID.get(upgrades[i].upgradeId);
         if (!def) continue;
         switch (def.effect.type) {
           case 'happiness_boost':
@@ -179,23 +181,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const incomeMultTotal = incomeMult * rideIncomeBuffMult;
       visitorAttractionMult *= visitorSpawnBuffMult;
 
-      const operatingCount = rides.length;
+      const operatingCount = prevRides.length;
+      const newRides: RideInstance[] = [];
 
-      for (let i = 0; i < rides.length; i++) {
-        const ride = rides[i];
-        ride.ticksSincePurchase++;
-
+      for (let i = 0; i < prevRides.length; i++) {
+        const ride = prevRides[i];
+        const ticksSincePurchase = ride.ticksSincePurchase + 1;
         const def = getRideDefinition(ride.definitionId);
-        if (!def) continue;
+        if (!def) {
+          newRides.push({ ...ride, ticksSincePurchase });
+          continue;
+        }
 
         const pathM = getRidePathStatMultipliers(ride.purchasedPathIds, ride.definitionId);
         const capacity = Math.round(def.baseCapacity * pathM.capacity * capacityMult);
         const happinessFactor = state.happiness / 100;
-        ride.visitors = Math.round(capacity * happinessFactor);
-
-        const income = ride.visitors * def.baseIncome * pathM.income * incomeMultTotal;
+        const visitors = Math.round(capacity * happinessFactor);
+        const income = visitors * def.baseIncome * pathM.income * incomeMultTotal;
         money += income;
         totalMoneyEarned += income;
+        newRides.push({ ...ride, ticksSincePurchase, visitors });
       }
 
       const happinessTarget = clamp(
@@ -239,7 +244,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       return {
         money,
-        rides: [...rides],
+        rides: newRides,
         happiness,
         visitors,
         tickCount: newTickCount,

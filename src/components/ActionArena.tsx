@@ -2,7 +2,7 @@ import { BALANCE } from '@/data/balance';
 import { cn } from '@/lib/utils';
 import { selectGoldenTicket, selectTickCount, useGameStore } from '@/store/gameStore';
 import { DollarSign, Sparkles } from 'lucide-react';
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 type FloatVariant = 'cash' | 'crit' | 'combo';
 
@@ -32,6 +32,14 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
   const [floats, setFloats] = useState<FloatingText[]>([]);
   const [critPulse, setCritPulse] = useState(false);
   const arenaRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const spawnFloat = useCallback((text: string, buttonEl: HTMLElement, variant: FloatVariant) => {
     if (!arenaRef.current) return;
@@ -41,7 +49,8 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
     const y = btnRect.top - arenaRect.top;
     const id = feedbackId++;
     setFloats((prev) => [...prev, { id, text, x, y, variant }]);
-    setTimeout(() => {
+    window.setTimeout(() => {
+      if (!mountedRef.current) return;
       setFloats((prev) => {
         const idx = prev.findIndex((f) => f.id === id);
         if (idx === -1) return prev;
@@ -65,7 +74,10 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
 
       if (result.isCrit) {
         setCritPulse(true);
-        window.setTimeout(() => setCritPulse(false), 420);
+        window.setTimeout(() => {
+          if (!mountedRef.current) return;
+          setCritPulse(false);
+        }, 420);
       }
     },
     [ticketBooth, spawnFloat, onTicketCashFly]
