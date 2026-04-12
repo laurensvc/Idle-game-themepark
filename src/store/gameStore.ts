@@ -1,532 +1,425 @@
+import { playGameSfx } from '@/audio/soundManager';
+import { BALANCE } from '@/data/balance';
+import { RIDE_DEFINITIONS, getLevelUpCost, getRideDefinition } from '@/data/rides';
+import { UPGRADE_DEFINITIONS } from '@/data/upgrades';
+import { AUDIO_STORAGE_KEY, loadPersistedAudioSettings } from '@/lib/audioStorage';
+import { clamp, randomInt } from '@/lib/utils';
+import type { AudioSettings, GameState, GameStore, RideInstance, Visitor, VisitorType } from '@/types/game';
 import { create } from 'zustand';
-import { playGameSfx } from '../audio/soundManager';
-import { getLevelCapacityMultiplier, getLevelIncomeMultiplier, getLevelUpCost, getRideDefinition } from '../data/rides';
-import { getUpgradeDefinition } from '../data/upgrades';
-import type { GameState, Notification, Ride, VisitorGroup, VisitorType } from '../types/game';
+import { useShallow } from 'zustand/react/shallow';
 
-const TICK_INTERVAL_MS = 1000;
-/** Toast / in-game notification lifetime (keep Sonner duration in sync). */
-export const NOTIFICATION_TTL_MS = 5000;
-
-/** Battery drained per second while a ride is operating (0–100 scale). */
-export const RIDE_BATTERY_DRAIN_PER_TICK = 2;
-/** Battery restored per click (clamped to 100). */
-export const RIDE_BATTERY_CHARGE_PER_CLICK = 14;
-/** Cash per tap at the ticket booth (inclusive range). */
-export const TICKET_BOOTH_CASH_MIN = 2;
-export const TICKET_BOOTH_CASH_MAX = 5;
 const VISITOR_TYPES: VisitorType[] = ['family', 'thrill_seeker', 'child', 'elderly', 'teen'];
-const AUDIO_SETTINGS_STORAGE_KEY = 'idlepark_audio_settings_v1';
 
-interface StoredAudioSettings {
-  isMuted: boolean;
-  masterVolume: number;
-  sfxVolume: number;
-  musicVolume: number;
-}
+let nextRideInstanceId = 1;
+let nextVisitorId = 1;
+let nextNotificationId = 1;
 
-function generateId(): string {
-  return Math.random().toString(36).slice(2, 9);
-}
+const createRideInstance = (definitionId: string): RideInstance => ({
+  id: `ride_${nextRideInstanceId++}`,
+  definitionId,
+  status: 'idle',
+  level: 1,
+  ticksSincePurchase: 0,
+  breakdownCooldown: BALANCE.breakdownCooldownTicks,
+  repairProgress: 0,
+  dirt: 0,
+  visitors: 0,
+});
 
-function createInitialRide(definitionId: string): Ride {
-  return {
-    definitionId,
-    instanceId: generateId(),
-    status: 'idle',
-    dirtLevel: 0,
-    currentVisitors: 0,
-    totalVisitorsServed: 0,
-    repairProgress: 0,
-    isAutoRepair: false,
-    level: 1,
-    ticksSinceLastBreakdown: 0,
-  };
-}
-
-/** When park battery is empty, operating rides turn off; when it has charge, idle rides turn on. */
-function syncRidesWithParkBatteryLevel(rides: Ride[], parkBatteryLevel: number): Ride[] {
-  return rides.map((ride) => {
-    if (parkBatteryLevel <= 0 && ride.status === 'operating') {
-      return { ...ride, status: 'idle' as const, currentVisitors: 0 };
-    }
-    if (parkBatteryLevel > 0 && ride.status === 'idle') {
-      return { ...ride, status: 'operating' as const };
-    }
-    return ride;
-  });
-}
-
-function promoteIdleRidesWhenParkPowered(rides: Ride[]): Ride[] {
-  return rides.map((r) => (r.status === 'idle' ? { ...r, status: 'operating' as const } : r));
-}
-
-function idleAllOperatingRides(rides: Ride[]): Ride[] {
-  return rides.map((r) => (r.status === 'operating' ? { ...r, status: 'idle' as const, currentVisitors: 0 } : r));
-}
-
-function createNotification(type: Notification['type'], message: string, rideInstanceId?: string): Notification {
-  return {
-    id: generateId(),
-    type,
-    message,
-    timestamp: Date.now(),
-    rideInstanceId,
-  };
-}
-
-const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
-
-const getStoredAudioSettings = (): StoredAudioSettings => {
-  const defaults: StoredAudioSettings = {
-    isMuted: false,
-    masterVolume: 0.8,
-    sfxVolume: 0.8,
-    musicVolume: 0.75,
-  };
-
-  if (typeof window === 'undefined') return defaults;
-
+const saveAudioSettings = (settings: AudioSettings): void => {
   try {
-    const raw = window.localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY);
-    if (!raw) return defaults;
-    const parsed = JSON.parse(raw) as Partial<StoredAudioSettings>;
-
-    return {
-      isMuted: typeof parsed.isMuted === 'boolean' ? parsed.isMuted : defaults.isMuted,
-      masterVolume: clamp01(typeof parsed.masterVolume === 'number' ? parsed.masterVolume : defaults.masterVolume),
-      sfxVolume: clamp01(typeof parsed.sfxVolume === 'number' ? parsed.sfxVolume : defaults.sfxVolume),
-      musicVolume: clamp01(typeof parsed.musicVolume === 'number' ? parsed.musicVolume : defaults.musicVolume),
-    };
+    localStorage.setItem(AUDIO_STORAGE_KEY, JSON.stringify(settings));
   } catch {
-    return defaults;
+    /* ignore */
   }
 };
-
-const persistAudioSettings = (settings: StoredAudioSettings): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-  } catch {
-    // Ignore persistence failures; runtime state still works.
-  }
-};
-
-interface GameActions {
-  tick: () => void;
-  buyRide: (definitionId: string) => void;
-  repairRide: (instanceId: string) => void;
-  cleanPark: () => void;
-  cleanRide: (instanceId: string) => void;
-  buyUpgrade: (upgradeId: string) => void;
-  levelUpRide: (instanceId: string) => void;
-  chargeParkBattery: () => void;
-  selectRide: (instanceId: string | null) => void;
-  togglePause: () => void;
-  toggleAudioMute: () => void;
-  setMasterVolume: (volume: number) => void;
-  setSfxVolume: (volume: number) => void;
-  setMusicVolume: (volume: number) => void;
-  dismissNotification: (id: string) => void;
-  /** Manual tap income (Cookie Clicker–style front gate). Returns cash gained (0 if paused). */
-  ticketBoothClick: () => number;
-  /** Small manual park path sweep; no-op when already spotless. */
-  arenaQuickSweep: () => void;
-  /** Tiny tip + happiness bump for “maintenance tap” feedback. */
-  arenaMaintenanceClick: () => void;
-}
-
-const initialAudioSettings = getStoredAudioSettings();
 
 const initialState: GameState = {
-  money: 500,
-  parkBatteryLevel: 0,
-  rides: [createInitialRide('ferris_wheel')],
-  visitors: [],
+  money: BALANCE.startingMoney,
+  rides: [createRideInstance('ferris_wheel')],
+  parkBattery: BALANCE.startingBattery,
+  happiness: BALANCE.startingHappiness,
   parkDirt: 0,
-  parkHappiness: 80,
+  visitors: [],
+  upgrades: [],
   notifications: [],
-  purchasedUpgrades: [],
-  isAudioMuted: initialAudioSettings.isMuted,
-  masterVolume: initialAudioSettings.masterVolume,
-  sfxVolume: initialAudioSettings.sfxVolume,
-  musicVolume: initialAudioSettings.musicVolume,
-  stats: {
-    totalEarnings: 0,
-    totalVisitors: 0,
-    peakVisitors: 0,
-    ridesFixed: 0,
-    timePlayed: 0,
-  },
-  gameTick: 0,
-  isPaused: false,
-  isAutoCleanEnabled: false,
+  tickCount: 0,
+  totalMoneyEarned: 0,
+  totalVisitorsServed: 0,
+  audioSettings: loadPersistedAudioSettings(),
   selectedRideId: null,
 };
 
-export const useGameStore = create<GameState & GameActions>((set, get) => ({
+export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
 
   tick: () => {
-    const state = get();
-    if (state.isPaused) return;
+    set((state) => {
+      const newTickCount = state.tickCount + 1;
+      let money = state.money;
+      let parkBattery = state.parkBattery;
+      let parkDirt = state.parkDirt;
+      let totalMoneyEarned = state.totalMoneyEarned;
+      let totalVisitorsServed = state.totalVisitorsServed;
+      const rides = state.rides;
+      const notifications = state.notifications;
+      const upgrades = state.upgrades;
 
-    const now = Date.now();
-    const newNotifications: Notification[] = [];
+      const hasAutoRepair = upgrades.some((u) => u.upgradeId === 'auto_repair');
+      const hasJanitor = upgrades.some((u) => u.upgradeId === 'janitor_1');
+      const hasAutoClean = upgrades.some((u) => u.upgradeId === 'auto_clean');
+      const hasBatteryUpgrade = upgrades.some((u) => u.upgradeId === 'battery_upgrade');
 
-    let hasBreakdownAlert = false;
-    let hasRepairComplete = false;
-    let moneyDelta = 0;
+      let happinessBoost = 0;
+      let visitorAttractionMult = 1;
+      let capacityMult = 1;
+      let incomeMult = 1;
+      let breakdownMult = 1;
 
-    const parkBatteryStart = state.parkBatteryLevel;
-    const ridesAfterPowerSync = syncRidesWithParkBatteryLevel(state.rides, parkBatteryStart);
+      for (let i = 0; i < upgrades.length; i++) {
+        const def = UPGRADE_DEFINITIONS.find((d) => d.id === upgrades[i].upgradeId);
+        if (!def) continue;
+        switch (def.effect.type) {
+          case 'happiness_boost':
+            happinessBoost += def.effect.value;
+            break;
+          case 'visitor_attraction':
+            visitorAttractionMult += def.effect.value;
+            break;
+          case 'capacity_boost':
+            capacityMult += def.effect.value;
+            break;
+          case 'income_boost':
+            incomeMult += def.effect.value;
+            break;
+          case 'breakdown_reduction':
+            breakdownMult *= 1 - def.effect.value;
+            break;
+        }
+      }
 
-    const updatedRides = ridesAfterPowerSync.map((ride) => {
-      const def = getRideDefinition(ride.definitionId);
-      if (!def) return ride;
+      const batteryDrainMult = hasBatteryUpgrade ? 1 - BALANCE.batteryUpgradeReduction : 1;
 
-      const updated = { ...ride };
+      let operatingCount = 0;
+      let brokenCount = 0;
+      let totalRideDirt = 0;
 
-      const breakdownReductionUpgrades = state.purchasedUpgrades
-        .map((id) => getUpgradeDefinition(id))
-        .filter((u) => u?.rideId === ride.definitionId && u?.effect === 'breakdown_reduction');
-      const totalReduction = breakdownReductionUpgrades.reduce((sum, u) => sum + (u?.value ?? 0), 0);
-      const effectiveBreakdownChance = (def.breakdownChance * (1 - totalReduction)) / 60;
+      const batteryAtTickStart = state.parkBattery;
 
-      if (updated.status === 'operating') {
-        updated.ticksSinceLastBreakdown++;
+      for (let i = 0; i < rides.length; i++) {
+        const ride = rides[i];
+        ride.ticksSincePurchase++;
 
-        const incomeBoost = state.purchasedUpgrades
-          .map((id) => getUpgradeDefinition(id))
-          .filter((u) => u?.rideId === ride.definitionId && u?.effect === 'income_boost')
-          .reduce((sum, u) => sum + (u?.value ?? 0), 0);
+        if (ride.breakdownCooldown > 0) {
+          ride.breakdownCooldown--;
+        }
 
-        const capacityBoost = state.purchasedUpgrades
-          .map((id) => getUpgradeDefinition(id))
-          .filter((u) => u?.rideId === ride.definitionId && u?.effect === 'capacity_boost')
-          .reduce((sum, u) => sum + (u?.value ?? 0), 0);
+        const def = getRideDefinition(ride.definitionId);
+        if (!def) continue;
 
-        const levelCapacity = getLevelCapacityMultiplier(ride.level);
-        const levelIncome = getLevelIncomeMultiplier(ride.level);
+        if (ride.status === 'operating') {
+          parkBattery -= BALANCE.batteryDrainPerRide * batteryDrainMult;
 
-        const effectiveCapacity = Math.floor(def.baseCapacity * (1 + capacityBoost) * levelCapacity);
-        const visitorAttraction = state.purchasedUpgrades
-          .map((id) => getUpgradeDefinition(id))
-          .filter((u) => !u?.rideId && u?.effect === 'visitor_attraction')
-          .reduce((sum, u) => sum + (u?.value ?? 0), 0);
-
-        const happinessFactor = state.parkHappiness / 100;
-        const dirtFactor = Math.max(0.3, 1 - updated.dirtLevel / 100);
-        const baseVisitors = Math.floor(
-          effectiveCapacity * happinessFactor * dirtFactor * (1 + visitorAttraction) * (Math.random() * 0.4 + 0.8)
-        );
-        updated.currentVisitors = Math.min(effectiveCapacity, baseVisitors);
-        updated.totalVisitorsServed += updated.currentVisitors;
-
-        const earned = Math.floor(
-          updated.currentVisitors * def.baseCostPerTick * (1 + incomeBoost) * levelIncome * dirtFactor
-        );
-        moneyDelta += earned;
-
-        updated.dirtLevel = Math.min(100, updated.dirtLevel + 0.5 + (ride.definitionId === 'water_ride' ? 1 : 0));
-
-        if (Math.random() < effectiveBreakdownChance && updated.ticksSinceLastBreakdown > 30) {
-          updated.status = 'broken';
-          updated.currentVisitors = 0;
-          updated.ticksSinceLastBreakdown = 0;
-          hasBreakdownAlert = true;
-          newNotifications.push(createNotification('breakdown', `${def.name} has broken down!`, ride.instanceId));
-
-          const hasAutoRepair = state.purchasedUpgrades.some(
-            (id) =>
-              getUpgradeDefinition(id)?.rideId === ride.definitionId &&
-              getUpgradeDefinition(id)?.effect === 'auto_repair'
-          );
-          if (hasAutoRepair) {
-            updated.isAutoRepair = true;
-            updated.status = 'repairing';
-            updated.repairProgress = 0;
+          if (parkBattery <= 0) {
+            parkBattery = 0;
+            ride.status = 'idle';
+            ride.visitors = 0;
+            continue;
           }
-        }
-      } else if (updated.status === 'broken') {
-        updated.currentVisitors = 0;
-      } else if (updated.status === 'repairing') {
-        const repairSpeed = 100 / def.repairTime;
-        updated.repairProgress = Math.min(100, updated.repairProgress + repairSpeed);
-        updated.currentVisitors = 0;
 
-        if (updated.repairProgress >= 100) {
-          updated.status = parkBatteryStart > 0 ? ('operating' as const) : ('idle' as const);
-          updated.repairProgress = 0;
-          hasRepairComplete = true;
-          newNotifications.push(createNotification('repair', `${def.name} is back online!`, ride.instanceId));
+          operatingCount++;
+
+          const capacity = Math.round(
+            def.baseCapacity * (1 + BALANCE.capacityMultPerLevel * (ride.level - 1)) * capacityMult
+          );
+          const happinessFactor = state.happiness / 100;
+          const dirtPenalty = Math.max(0, 1 - ride.dirt / 100);
+          ride.visitors = Math.round(capacity * happinessFactor * dirtPenalty);
+
+          const income =
+            ride.visitors * def.baseIncome * (1 + BALANCE.incomeMultPerLevel * (ride.level - 1)) * incomeMult;
+          money += income;
+          totalMoneyEarned += income;
+
+          ride.dirt = Math.min(100, ride.dirt + def.dirtRate);
+
+          if (ride.breakdownCooldown <= 0 && Math.random() < def.breakdownChance * breakdownMult) {
+            ride.status = 'broken';
+            ride.visitors = 0;
+            ride.breakdownCooldown = BALANCE.breakdownCooldownTicks;
+            playGameSfx('breakdown');
+            notifications.push({
+              id: `notif_${nextNotificationId++}`,
+              message: `${def.emoji} ${def.name} broke down!`,
+              type: 'error',
+              tick: newTickCount,
+            });
+
+            if (hasAutoRepair) {
+              ride.status = 'repairing';
+              ride.repairProgress = 0;
+            }
+          }
+        } else if (ride.status === 'repairing') {
+          ride.repairProgress++;
+          if (ride.repairProgress >= def.repairTime) {
+            ride.status = 'operating';
+            ride.repairProgress = 0;
+            ride.breakdownCooldown = BALANCE.breakdownCooldownTicks;
+            playGameSfx('repair_done');
+            notifications.push({
+              id: `notif_${nextNotificationId++}`,
+              message: `${def.emoji} ${def.name} repaired!`,
+              type: 'success',
+              tick: newTickCount,
+            });
+          }
+        } else if (ride.status === 'broken' && hasAutoRepair) {
+          ride.status = 'repairing';
+          ride.repairProgress = 0;
+        }
+
+        if (ride.status === 'broken') {
+          brokenCount++;
+        }
+
+        totalRideDirt += ride.dirt;
+
+        if (hasAutoClean) {
+          ride.dirt = Math.max(0, ride.dirt - BALANCE.autoCleanRideRate);
         }
       }
 
-      return updated;
-    });
-
-    const operatingCount = updatedRides.filter((r) => r.status === 'operating').length;
-    const nextParkBatteryLevel = Math.max(0, parkBatteryStart - operatingCount * RIDE_BATTERY_DRAIN_PER_TICK);
-    const finalRides =
-      nextParkBatteryLevel <= 0 && operatingCount > 0 ? idleAllOperatingRides(updatedRides) : updatedRides;
-
-    const dirtIncrease = 0.2 + finalRides.filter((r) => r.status === 'operating').length * 0.1;
-    let newParkDirt = Math.min(100, state.parkDirt + dirtIncrease);
-
-    if (state.isAutoCleanEnabled) {
-      newParkDirt = Math.max(0, newParkDirt - 2);
-      finalRides.forEach((r) => {
-        r.dirtLevel = Math.max(0, r.dirtLevel - 1);
-      });
-    }
-
-    const operatingRides = finalRides.filter((r) => r.status === 'operating').length;
-    const brokenRides = finalRides.filter((r) => r.status === 'broken').length;
-    const avgRideDirt = finalRides.reduce((sum, r) => sum + r.dirtLevel, 0) / Math.max(1, finalRides.length);
-    const happinessTarget = Math.max(
-      10,
-      100 - newParkDirt * 0.3 - avgRideDirt * 0.2 - brokenRides * 15 + operatingRides * 5
-    );
-    const newHappiness = Math.max(
-      0,
-      Math.min(100, state.parkHappiness + (happinessTarget - state.parkHappiness) * 0.05)
-    );
-
-    const newVisitors: VisitorGroup[] = [...state.visitors];
-    if (state.gameTick % 5 === 0 && operatingRides > 0) {
-      const visitorAttraction = state.purchasedUpgrades
-        .map((id) => getUpgradeDefinition(id))
-        .filter((u) => !u?.rideId && u?.effect === 'visitor_attraction')
-        .reduce((sum, u) => sum + (u?.value ?? 0), 0);
-
-      const spawnCount = Math.floor((1 + visitorAttraction) * (Math.random() < 0.5 ? 1 : 2));
-      for (let i = 0; i < spawnCount; i++) {
-        const type = VISITOR_TYPES[Math.floor(Math.random() * VISITOR_TYPES.length)];
-        newVisitors.push({
-          id: generateId(),
-          type,
-          size: Math.floor(Math.random() * 4) + 1,
-          happiness: Math.floor(Math.random() * 30) + 70,
-          spendingPower: Math.floor(Math.random() * 50) + 20,
-          timeInPark: 0,
-        });
+      if (batteryAtTickStart > 0 && parkBattery <= 0) {
+        playGameSfx('warning');
       }
-    }
 
-    const activeVisitors = newVisitors
-      .map((v) => ({ ...v, timeInPark: v.timeInPark + 1, happiness: Math.max(0, v.happiness - newParkDirt / 200) }))
-      .filter((v) => v.timeInPark < 120 && v.happiness > 20);
+      parkDirt += BALANCE.dirtBaseRate + BALANCE.dirtPerOperatingRide * operatingCount;
+      if (hasJanitor) {
+        parkDirt = Math.max(0, parkDirt - BALANCE.janitorCleanRate);
+      }
+      parkDirt = clamp(parkDirt, 0, 100);
 
-    const totalCurrentVisitors = activeVisitors.reduce((sum, v) => sum + v.size, 0);
+      const avgRideDirt = rides.length > 0 ? totalRideDirt / rides.length : 0;
+      const happinessTarget = clamp(
+        BALANCE.happinessBaseTarget -
+          parkDirt * 0.3 -
+          avgRideDirt * 0.2 +
+          brokenCount * BALANCE.happinessPerBrokenRide +
+          operatingCount * BALANCE.happinessPerOperatingRide +
+          happinessBoost,
+        0,
+        100
+      );
+      const happiness = clamp(
+        state.happiness + (happinessTarget - state.happiness) * BALANCE.happinessLerpRate,
+        0,
+        100
+      );
 
-    // Auto-dismiss notifications older than TTL, then prepend new ones and cap at 5
-    const freshNotifications = state.notifications.filter((n) => now - n.timestamp < NOTIFICATION_TTL_MS);
-    const allNotifications = [...newNotifications, ...freshNotifications].slice(0, 5);
+      const visitors = [...state.visitors];
+      for (let i = visitors.length - 1; i >= 0; i--) {
+        visitors[i].ticksRemaining--;
+        if (visitors[i].ticksRemaining <= 0 || happiness < BALANCE.happinessLeaveThreshold) {
+          totalVisitorsServed += visitors[i].groupSize;
+          visitors.splice(i, 1);
+        }
+      }
 
-    const newStats = {
-      ...state.stats,
-      totalEarnings: state.stats.totalEarnings + moneyDelta,
-      totalVisitors: state.stats.totalVisitors + totalCurrentVisitors * 0.01,
-      peakVisitors: Math.max(state.stats.peakVisitors, totalCurrentVisitors),
-      timePlayed: state.stats.timePlayed + 1,
-    };
+      if (newTickCount % BALANCE.visitorSpawnInterval === 0 && operatingCount > 0) {
+        const groupCount = Math.max(
+          1,
+          Math.round(operatingCount * BALANCE.visitorSpawnPerOperatingRide * visitorAttractionMult)
+        );
+        for (let g = 0; g < groupCount; g++) {
+          visitors.push({
+            id: `v_${nextVisitorId++}`,
+            type: VISITOR_TYPES[randomInt(0, VISITOR_TYPES.length - 1)],
+            ticksRemaining: BALANCE.visitorLifespan,
+            groupSize: randomInt(BALANCE.visitorGroupMin, BALANCE.visitorGroupMax),
+          });
+        }
+      }
 
-    set({
-      money: state.money + moneyDelta,
-      parkBatteryLevel: nextParkBatteryLevel,
-      rides: finalRides,
-      parkDirt: newParkDirt,
-      parkHappiness: newHappiness,
-      visitors: activeVisitors,
-      notifications: allNotifications,
-      stats: newStats,
-      gameTick: state.gameTick + 1,
+      while (notifications.length > BALANCE.maxNotifications) {
+        notifications.shift();
+      }
+
+      return {
+        money,
+        rides: [...rides],
+        parkBattery,
+        parkDirt,
+        happiness,
+        visitors,
+        tickCount: newTickCount,
+        totalMoneyEarned,
+        totalVisitorsServed,
+        notifications: [...notifications],
+      };
     });
-
-    if (hasBreakdownAlert) playGameSfx('breakdown');
-    if (hasRepairComplete) playGameSfx('repair_done');
   },
 
   buyRide: (definitionId: string) => {
     const state = get();
-    const def = getRideDefinition(definitionId);
-    if (!def) return;
-    if (state.money < def.unlockCost) return;
-    if (state.rides.some((r) => r.definitionId === definitionId)) return;
+    const def = RIDE_DEFINITIONS.find((r) => r.id === definitionId);
+    if (!def || state.money < def.baseCost) return;
 
-    const newRide = createInitialRide(definitionId);
-    set({
-      money: state.money - def.unlockCost,
-      rides: [...state.rides, newRide],
-      notifications: [
-        createNotification('upgrade', `${def.name} has been added to the park!`),
-        ...state.notifications,
-      ].slice(0, 5),
-    });
     playGameSfx('purchase');
+    set({
+      money: state.money - def.baseCost,
+      rides: [...state.rides, createRideInstance(definitionId)],
+      notifications: [
+        ...state.notifications,
+        {
+          id: `notif_${nextNotificationId++}`,
+          message: `${def.emoji} Built ${def.name}!`,
+          type: 'success',
+          tick: state.tickCount,
+        },
+      ],
+    });
   },
 
-  repairRide: (instanceId: string) => {
+  levelUpRide: (rideId: string) => {
     const state = get();
-    const ride = state.rides.find((r) => r.instanceId === instanceId);
-    if (!ride || ride.status !== 'broken') return;
+    const rideIndex = state.rides.findIndex((r) => r.id === rideId);
+    if (rideIndex === -1) return;
+    const ride = state.rides[rideIndex];
+    if (ride.level >= BALANCE.maxRideLevel) return;
     const def = getRideDefinition(ride.definitionId);
+    if (!def) return;
+    const cost = getLevelUpCost(def.baseLevelUpCost, ride.level);
+    if (state.money < cost) return;
 
+    playGameSfx('upgrade');
+    const newRides = [...state.rides];
+    newRides[rideIndex] = { ...ride, level: ride.level + 1 };
     set({
-      rides: state.rides.map((r) =>
-        r.instanceId === instanceId ? { ...r, status: 'repairing' as const, repairProgress: 0, isAutoRepair: false } : r
-      ),
+      money: state.money - cost,
+      rides: newRides,
       notifications: [
-        createNotification('repair', `Repairing ${def?.name ?? 'ride'}...`, instanceId),
         ...state.notifications,
-      ].slice(0, 5),
+        {
+          id: `notif_${nextNotificationId++}`,
+          message: `${def.emoji} ${def.name} leveled up to ${ride.level + 1}!`,
+          type: 'success',
+          tick: state.tickCount,
+        },
+      ],
     });
+  },
+
+  toggleRide: (rideId: string) => {
+    const state = get();
+    const rideIndex = state.rides.findIndex((r) => r.id === rideId);
+    if (rideIndex === -1) return;
+    const ride = state.rides[rideIndex];
+    if (ride.status === 'broken' || ride.status === 'repairing') return;
+
+    const newStatus = ride.status === 'idle' ? 'operating' : 'idle';
+    const newRides = [...state.rides];
+    newRides[rideIndex] = {
+      ...ride,
+      status: newStatus,
+      visitors: newStatus === 'idle' ? 0 : ride.visitors,
+    };
+    playGameSfx('ui_toggle');
+    set({ rides: newRides });
+  },
+
+  repairRide: (rideId: string) => {
+    const state = get();
+    const rideIndex = state.rides.findIndex((r) => r.id === rideId);
+    if (rideIndex === -1) return;
+    const ride = state.rides[rideIndex];
+    if (ride.status !== 'broken') return;
+
     playGameSfx('repair_start');
+    const newRides = [...state.rides];
+    newRides[rideIndex] = { ...ride, status: 'repairing', repairProgress: 0 };
+    set({ rides: newRides });
+  },
+
+  rechargeBattery: () => {
+    playGameSfx('ui_click');
+    set((state) => ({
+      parkBattery: clamp(state.parkBattery + BALANCE.batteryRechargeAmount, 0, 100),
+    }));
   },
 
   cleanPark: () => {
-    set((state) => ({
-      parkDirt: 0,
-      rides: state.rides.map((r) => ({ ...r, dirtLevel: 0 })),
-    }));
-    playGameSfx('ui_click');
-  },
-
-  cleanRide: (instanceId: string) => {
-    set((state) => ({
-      rides: state.rides.map((r) => (r.instanceId === instanceId ? { ...r, dirtLevel: 0 } : r)),
-    }));
-    playGameSfx('ui_click');
-  },
-
-  levelUpRide: (instanceId: string) => {
-    const state = get();
-    const ride = state.rides.find((r) => r.instanceId === instanceId);
-    if (!ride) return;
-    const def = getRideDefinition(ride.definitionId);
-    if (!def) return;
-    if (ride.level >= def.maxLevel) return;
-
-    const cost = getLevelUpCost(def, ride.level);
-    if (state.money < cost) return;
-
-    set({
-      money: state.money - cost,
-      rides: state.rides.map((r) => (r.instanceId === instanceId ? { ...r, level: r.level + 1 } : r)),
-      notifications: [
-        createNotification('upgrade', `${def.name} upgraded to level ${ride.level + 1}!`, instanceId),
-        ...state.notifications,
-      ].slice(0, 5),
+    playGameSfx('ui_toggle');
+    set((state) => {
+      const rides = state.rides.map((r) => ({
+        ...r,
+        dirt: Math.max(0, r.dirt - BALANCE.cleanSweepAmount),
+      }));
+      return {
+        parkDirt: Math.max(0, state.parkDirt - BALANCE.cleanSweepAmount),
+        rides,
+      };
     });
-    playGameSfx('upgrade');
-  },
-
-  chargeParkBattery: () => {
-    const state = get();
-    if (state.parkBatteryLevel >= 100) return;
-
-    const nextParkBatteryLevel = Math.min(100, state.parkBatteryLevel + RIDE_BATTERY_CHARGE_PER_CLICK);
-    const rides = nextParkBatteryLevel > 0 ? promoteIdleRidesWhenParkPowered(state.rides) : state.rides;
-
-    set({
-      parkBatteryLevel: nextParkBatteryLevel,
-      rides,
-    });
-    playGameSfx('ui_click');
   },
 
   buyUpgrade: (upgradeId: string) => {
     const state = get();
-    const upgrade = getUpgradeDefinition(upgradeId);
-    if (!upgrade) return;
-    if (state.money < upgrade.cost) return;
-    if (state.purchasedUpgrades.includes(upgradeId)) return;
-    if (upgrade.requires && !state.purchasedUpgrades.includes(upgrade.requires)) return;
+    if (state.upgrades.some((u) => u.upgradeId === upgradeId)) return;
+    const def = UPGRADE_DEFINITIONS.find((u) => u.id === upgradeId);
+    if (!def || state.money < def.cost) return;
+    if (def.prerequisiteId && !state.upgrades.some((u) => u.upgradeId === def.prerequisiteId)) return;
 
-    const updates: Partial<GameState> = {
-      money: state.money - upgrade.cost,
-      purchasedUpgrades: [...state.purchasedUpgrades, upgradeId],
-      notifications: [
-        createNotification('upgrade', `Upgrade purchased: ${upgrade.name}!`),
-        ...state.notifications,
-      ].slice(0, 5),
-    };
-
-    if (upgrade.effect === 'auto_clean') {
-      updates.isAutoCleanEnabled = true;
-    }
-
-    if (upgrade.effect === 'auto_repair' && upgrade.rideId) {
-      updates.rides = state.rides.map((r) => {
-        if (r.definitionId === upgrade.rideId && r.status === 'broken') {
-          return { ...r, status: 'repairing' as const, repairProgress: 0, isAutoRepair: true };
-        }
-        return r;
-      });
-    }
-
-    set(updates);
     playGameSfx('upgrade');
+    set({
+      money: state.money - def.cost,
+      upgrades: [...state.upgrades, { upgradeId, purchasedAtTick: state.tickCount }],
+      notifications: [
+        ...state.notifications,
+        {
+          id: `notif_${nextNotificationId++}`,
+          message: `${def.icon} Unlocked ${def.name}!`,
+          type: 'success',
+          tick: state.tickCount,
+        },
+      ],
+    });
   },
 
-  selectRide: (instanceId: string | null) => {
-    set({ selectedRideId: instanceId });
+  ticketBooth: () => {
+    const amount = randomInt(BALANCE.ticketBoothMin, BALANCE.ticketBoothMax);
+    playGameSfx('cash_collect');
+    set((state) => ({
+      money: state.money + amount,
+      totalMoneyEarned: state.totalMoneyEarned + amount,
+    }));
+    return amount;
   },
 
-  togglePause: () => {
-    set((state) => ({ isPaused: !state.isPaused }));
-    playGameSfx('ui_toggle');
+  tuneUp: () => {
+    playGameSfx('ui_click');
+    set((state) => ({
+      money: state.money + BALANCE.tuneUpCash,
+      totalMoneyEarned: state.totalMoneyEarned + BALANCE.tuneUpCash,
+      happiness: clamp(state.happiness + BALANCE.tuneUpHappiness, 0, 100),
+    }));
   },
 
-  toggleAudioMute: () => {
-    const state = get();
-    const nextMuted = !state.isAudioMuted;
-    const nextSettings = {
-      isMuted: nextMuted,
-      masterVolume: state.masterVolume,
-      sfxVolume: state.sfxVolume,
-      musicVolume: state.musicVolume,
-    };
-    persistAudioSettings(nextSettings);
-    set({ isAudioMuted: nextMuted });
-    if (!nextMuted) playGameSfx('ui_toggle');
+  selectRide: (rideId: string | null) => {
+    const prev = get().selectedRideId;
+    set({ selectedRideId: rideId });
+    if (rideId && rideId !== prev) {
+      playGameSfx('ui_click');
+    } else if (rideId === null && prev !== null) {
+      playGameSfx('ui_toggle');
+    }
   },
 
-  setMasterVolume: (volume: number) => {
-    const state = get();
-    const nextSettings = {
-      isMuted: state.isAudioMuted,
-      masterVolume: clamp01(volume),
-      sfxVolume: state.sfxVolume,
-      musicVolume: state.musicVolume,
-    };
-    persistAudioSettings(nextSettings);
-    set({ masterVolume: nextSettings.masterVolume });
-  },
-
-  setSfxVolume: (volume: number) => {
-    const state = get();
-    const nextSettings = {
-      isMuted: state.isAudioMuted,
-      masterVolume: state.masterVolume,
-      sfxVolume: clamp01(volume),
-      musicVolume: state.musicVolume,
-    };
-    persistAudioSettings(nextSettings);
-    set({ sfxVolume: nextSettings.sfxVolume });
-  },
-
-  setMusicVolume: (volume: number) => {
-    const state = get();
-    const nextSettings = {
-      isMuted: state.isAudioMuted,
-      masterVolume: state.masterVolume,
-      sfxVolume: state.sfxVolume,
-      musicVolume: clamp01(volume),
-    };
-    persistAudioSettings(nextSettings);
-    set({ musicVolume: nextSettings.musicVolume });
+  setAudioSettings: (partial: Partial<AudioSettings>) => {
+    set((state) => {
+      const audioSettings = { ...state.audioSettings, ...partial };
+      saveAudioSettings(audioSettings);
+      return { audioSettings };
+    });
   },
 
   dismissNotification: (id: string) => {
@@ -534,72 +427,42 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     }));
   },
-
-  ticketBoothClick: () => {
-    const state = get();
-    if (state.isPaused) return 0;
-    const gain =
-      TICKET_BOOTH_CASH_MIN + Math.floor(Math.random() * (TICKET_BOOTH_CASH_MAX - TICKET_BOOTH_CASH_MIN + 1));
-    set({
-      money: state.money + gain,
-      stats: { ...state.stats, totalEarnings: state.stats.totalEarnings + gain },
-    });
-    playGameSfx('cash_collect');
-    return gain;
-  },
-
-  arenaQuickSweep: () => {
-    const state = get();
-    if (state.isPaused) return;
-    const hasDirt = state.parkDirt > 0 || state.rides.some((r) => r.dirtLevel > 0);
-    if (!hasDirt) {
-      playGameSfx('ui_click');
-      return;
-    }
-    set({
-      parkDirt: Math.max(0, state.parkDirt - 2),
-      rides: state.rides.map((r) => ({ ...r, dirtLevel: Math.max(0, r.dirtLevel - 2) })),
-    });
-    playGameSfx('ui_click');
-  },
-
-  arenaMaintenanceClick: () => {
-    const state = get();
-    if (state.isPaused) return;
-    const tip = 1;
-    set({
-      money: state.money + tip,
-      parkHappiness: Math.min(100, state.parkHappiness + 0.35),
-      stats: { ...state.stats, totalEarnings: state.stats.totalEarnings + tip },
-    });
-    playGameSfx('ui_click');
-  },
 }));
 
-export const resetGameStore = (): void => {
-  const current = useGameStore.getState();
-  useGameStore.setState({
-    ...initialState,
-    isAudioMuted: current.isAudioMuted,
-    masterVolume: current.masterVolume,
-    sfxVolume: current.sfxVolume,
-    musicVolume: current.musicVolume,
-    rides: [createInitialRide('ferris_wheel')],
-  });
-};
+export const useGameSelector = <T>(selector: (state: GameStore) => T): T => useGameStore(useShallow(selector));
 
-let gameLoopInterval: ReturnType<typeof setInterval> | null = null;
+export const selectMoney = (s: GameStore): number => s.money;
+export const selectHappiness = (s: GameStore): number => s.happiness;
+export const selectBattery = (s: GameStore): number => s.parkBattery;
+export const selectRides = (s: GameStore): RideInstance[] => s.rides;
+export const selectVisitors = (s: GameStore): Visitor[] => s.visitors;
+export const selectParkDirt = (s: GameStore): number => s.parkDirt;
+export const selectTickCount = (s: GameStore): number => s.tickCount;
 
-export const startGameLoop = () => {
-  if (gameLoopInterval) return;
-  gameLoopInterval = setInterval(() => {
-    useGameStore.getState().tick();
-  }, TICK_INTERVAL_MS);
-};
-
-export const stopGameLoop = () => {
-  if (gameLoopInterval) {
-    clearInterval(gameLoopInterval);
-    gameLoopInterval = null;
+export const selectIncomePerTick = (s: GameStore): number => {
+  let income = 0;
+  for (let i = 0; i < s.rides.length; i++) {
+    const ride = s.rides[i];
+    if (ride.status !== 'operating') continue;
+    const def = getRideDefinition(ride.definitionId);
+    if (!def) continue;
+    income += ride.visitors * def.baseIncome * (1 + BALANCE.incomeMultPerLevel * (ride.level - 1));
   }
+  return income;
+};
+
+export const selectTotalVisitors = (s: GameStore): number => {
+  let total = 0;
+  for (let i = 0; i < s.visitors.length; i++) {
+    total += s.visitors[i].groupSize;
+  }
+  return total;
+};
+
+export const selectOperatingCount = (s: GameStore): number => {
+  let count = 0;
+  for (let i = 0; i < s.rides.length; i++) {
+    if (s.rides[i].status === 'operating') count++;
+  }
+  return count;
 };

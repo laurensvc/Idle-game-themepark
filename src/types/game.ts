@@ -1,38 +1,54 @@
-/** `idle` = standby (no park power or rides forced off); `operating` = running while park battery supplies rides. */
-export type RideStatus = 'idle' | 'operating' | 'broken' | 'repairing' | 'locked';
-
-export type VisitorType = 'family' | 'thrill_seeker' | 'child' | 'elderly' | 'teen';
-
-export type NotificationType = 'breakdown' | 'repair' | 'visitor' | 'income' | 'upgrade' | 'warning';
+export type RideStatus = 'idle' | 'operating' | 'broken' | 'repairing';
 
 export interface RideDefinition {
   id: string;
   name: string;
-  icon: string;
-  thrillLevel: number; // 1-5
-  baseCostPerTick: number;
+  emoji: string;
+  baseCost: number;
+  baseIncome: number;
   baseCapacity: number;
-  breakdownChance: number; // 0-1 per minute
-  repairTime: number; // seconds
-  unlockCost: number;
-  maxLevel: number;
+  breakdownChance: number;
+  repairTime: number;
   baseLevelUpCost: number;
-  attractedVisitors: VisitorType[];
-  description: string;
-  gridColor: string;
+  dirtRate: number;
+  category: 'gentle' | 'thrill' | 'water' | 'family';
 }
 
-export interface Ride {
+export interface RideInstance {
+  id: string;
   definitionId: string;
-  instanceId: string;
   status: RideStatus;
-  dirtLevel: number; // 0-100
-  currentVisitors: number;
-  totalVisitorsServed: number;
-  repairProgress: number; // 0-100
-  isAutoRepair: boolean;
   level: number;
-  ticksSinceLastBreakdown: number;
+  ticksSincePurchase: number;
+  breakdownCooldown: number;
+  repairProgress: number;
+  dirt: number;
+  visitors: number;
+}
+
+export type VisitorType = 'family' | 'thrill_seeker' | 'child' | 'elderly' | 'teen';
+
+export interface Visitor {
+  id: string;
+  type: VisitorType;
+  ticksRemaining: number;
+  groupSize: number;
+}
+
+export type UpgradeCategory = 'global' | 'ride';
+
+export interface UpgradeEffect {
+  type:
+    | 'visitor_attraction'
+    | 'auto_clean'
+    | 'happiness_boost'
+    | 'auto_repair'
+    | 'capacity_boost'
+    | 'income_boost'
+    | 'breakdown_reduction'
+    | 'battery_efficiency'
+    | 'janitor';
+  value: number;
 }
 
 export interface UpgradeDefinition {
@@ -40,61 +56,63 @@ export interface UpgradeDefinition {
   name: string;
   description: string;
   cost: number;
-  rideId?: string; // if undefined, global upgrade
-  effect:
-    | 'auto_repair'
-    | 'capacity_boost'
-    | 'income_boost'
-    | 'breakdown_reduction'
-    | 'auto_clean'
-    | 'visitor_attraction';
-  value: number;
-  requires?: string; // upgrade id prerequisite
+  category: UpgradeCategory;
+  effect: UpgradeEffect;
+  prerequisiteId?: string;
+  icon: string;
 }
 
-export interface VisitorGroup {
-  id: string;
-  type: VisitorType;
-  size: number;
-  happiness: number; // 0-100
-  spendingPower: number;
-  targetRideId?: string;
-  timeInPark: number; // ticks
+export interface PurchasedUpgrade {
+  upgradeId: string;
+  purchasedAtTick: number;
 }
 
-export interface Notification {
+export type NotificationType = 'info' | 'success' | 'warning' | 'error';
+
+export interface GameNotification {
   id: string;
-  type: NotificationType;
   message: string;
-  timestamp: number;
-  rideInstanceId?: string;
+  type: NotificationType;
+  tick: number;
 }
 
-export interface GameStats {
-  totalEarnings: number;
-  totalVisitors: number;
-  peakVisitors: number;
-  ridesFixed: number;
-  timePlayed: number; // seconds
+export interface AudioSettings {
+  isMuted: boolean;
+  masterVolume: number;
+  sfxVolume: number;
+  musicVolume: number;
 }
 
 export interface GameState {
   money: number;
-  /** 0–100; shared by all rides; depletes while any ride is operating; charge from park UI. */
-  parkBatteryLevel: number;
-  rides: Ride[];
-  visitors: VisitorGroup[];
-  parkDirt: number; // 0-100 global cleanliness
-  parkHappiness: number; // 0-100
-  notifications: Notification[];
-  purchasedUpgrades: string[];
-  isAudioMuted: boolean;
-  masterVolume: number; // 0-1
-  sfxVolume: number; // 0-1
-  musicVolume: number; // 0-1 (theme loop gain before intrinsic THEME_MUSIC_BASE_VOLUME)
-  stats: GameStats;
-  gameTick: number;
-  isPaused: boolean;
-  isAutoCleanEnabled: boolean;
+  rides: RideInstance[];
+  parkBattery: number;
+  happiness: number;
+  parkDirt: number;
+  visitors: Visitor[];
+  upgrades: PurchasedUpgrade[];
+  notifications: GameNotification[];
+  tickCount: number;
+  totalMoneyEarned: number;
+  totalVisitorsServed: number;
+  audioSettings: AudioSettings;
   selectedRideId: string | null;
 }
+
+export interface GameActions {
+  tick: () => void;
+  buyRide: (definitionId: string) => void;
+  levelUpRide: (rideId: string) => void;
+  toggleRide: (rideId: string) => void;
+  repairRide: (rideId: string) => void;
+  rechargeBattery: () => void;
+  cleanPark: () => void;
+  buyUpgrade: (upgradeId: string) => void;
+  ticketBooth: () => number;
+  tuneUp: () => void;
+  selectRide: (rideId: string | null) => void;
+  setAudioSettings: (settings: Partial<AudioSettings>) => void;
+  dismissNotification: (id: string) => void;
+}
+
+export type GameStore = GameState & GameActions;

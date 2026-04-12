@@ -1,67 +1,49 @@
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
-import { Battery } from 'lucide-react';
+import { Battery, BatteryFull, BatteryLow, Zap } from 'lucide-react';
+import { memo } from 'react';
 
-export const ParkBatteryBar = () => {
-  const parkBatteryLevel = useGameStore((s) => s.parkBatteryLevel);
-  const chargeParkBattery = useGameStore((s) => s.chargeParkBattery);
+const getBatteryColor = (level: number): string => {
+  if (level > 60) return 'bg-park-green';
+  if (level > 30) return 'bg-park-yellow';
+  return 'bg-park-red';
+};
 
-  const canCharge = parkBatteryLevel < 100;
+const getBatteryIcon = (level: number) => {
+  if (level > 60) return BatteryFull;
+  if (level > 20) return Battery;
+  return BatteryLow;
+};
+
+const ParkBatteryBar: React.FC = memo(() => {
+  const battery = useGameStore((s) => s.parkBattery);
+  const recharge = useGameStore((s) => s.rechargeBattery);
+  const Icon = getBatteryIcon(battery);
 
   return (
-    <div className="border-border/60 bg-background/95 shrink-0 border-b px-3 py-2 backdrop-blur-sm">
-      <Card
-        size="sm"
-        className={cn(
-          'ring-foreground/10 mx-auto max-w-2xl gap-0 py-2.5 pr-3 pl-3 shadow-xs ring-1 transition-colors',
-          canCharge &&
-            'hover:ring-neon-violet/30 hover:bg-neon-violet/5 focus-within:ring-neon-violet/40 cursor-pointer'
-        )}
-        role={canCharge ? 'button' : 'region'}
-        tabIndex={canCharge ? 0 : undefined}
-        onClick={() => canCharge && chargeParkBattery()}
-        onKeyDown={(e) => {
-          if (!canCharge) return;
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            chargeParkBattery();
-          }
-        }}
-        aria-label={
-          canCharge
-            ? `Park battery ${Math.round(parkBatteryLevel)} percent, tap to charge`
-            : `Park battery full at ${Math.round(parkBatteryLevel)} percent`
-        }
-      >
-        <div className="text-muted-foreground mb-1 flex items-center justify-between text-sm">
-          <span className="flex items-center gap-1.5 font-semibold tracking-wider uppercase">
-            <Battery
-              className={cn('size-4 shrink-0', parkBatteryLevel > 30 ? 'text-neon-cyan' : 'text-amber-400')}
-              aria-hidden
-            />
-            Park power
-          </span>
-          <span className="tabular-nums">{Math.round(parkBatteryLevel)}%</span>
-        </div>
-        <div className="pixel-bar bg-muted h-3 overflow-hidden rounded-sm">
+    <button
+      onClick={recharge}
+      className={cn(
+        'flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 transition-all duration-150 select-none active:scale-95',
+        'bg-card border-border/60 border shadow-sm hover:shadow-md',
+        battery <= 15 && 'animate-pulse-glow'
+      )}
+      aria-label={`Recharge battery. Current: ${Math.round(battery)}%`}
+    >
+      <Icon className={cn('h-5 w-5', battery <= 15 ? 'text-park-red' : 'text-park-green')} />
+      <div className="min-w-[80px] flex-1">
+        <div className="park-bar h-2.5">
           <div
-            className="h-full transition-all duration-300"
-            style={{
-              width: `${parkBatteryLevel}%`,
-              background: parkBatteryLevel > 40 ? '#22d3ee' : parkBatteryLevel > 15 ? '#eab308' : '#f97316',
-              boxShadow: parkBatteryLevel > 0 ? `0 0 8px ${parkBatteryLevel > 40 ? '#22d3ee' : '#f59e0b'}` : undefined,
-            }}
+            className={cn('h-full rounded-full transition-all duration-300', getBatteryColor(battery))}
+            style={{ width: `${Math.min(100, battery)}%` }}
           />
         </div>
-        {canCharge ? (
-          <span className="text-muted-foreground mt-1 block text-center text-xs tracking-wide">
-            Tap to charge — powers all rides
-          </span>
-        ) : (
-          <span className="text-muted-foreground mt-1 block text-center text-xs tracking-wide">Fully charged</span>
-        )}
-      </Card>
-    </div>
+      </div>
+      <span className="w-9 text-right font-mono text-xs font-bold tabular-nums">{Math.round(battery)}%</span>
+      <Zap className="text-park-yellow h-3.5 w-3.5" />
+    </button>
   );
-};
+});
+
+ParkBatteryBar.displayName = 'ParkBatteryBar';
+export default ParkBatteryBar;
