@@ -8,7 +8,7 @@ const buffMeta = (b: ActiveBuff): { label: string; icon: ReactNode } => {
   switch (b.kind) {
     case 'ride_income':
       return {
-        label: `${b.magnitude}× rides`,
+        label: `${b.magnitude}× tap (park)`,
         icon: <Flame className="text-park-orange h-3.5 w-3.5 shrink-0" />,
       };
     case 'ticket_cash':

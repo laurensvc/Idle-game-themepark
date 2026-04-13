@@ -44,7 +44,7 @@ const ShopPanel: React.FC = memo(() => {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold">{def.name}</div>
                     <div className="text-muted-foreground text-xs">
-                      {def.baseIncome}/s income · {def.baseCapacity} cap · one per park
+                      +{def.baseIncome} tap value · {def.baseCapacity} cap · one per park
                     </div>
                   </div>
                   {owned ? (

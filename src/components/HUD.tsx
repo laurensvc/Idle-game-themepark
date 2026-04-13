@@ -1,5 +1,5 @@
 import { formatMoney } from '@/lib/utils';
-import { selectIncomePerTick, selectTotalVisitors, useGameStore } from '@/store/gameStore';
+import { selectEstimatedAvgTicketCash, selectTotalVisitors, useGameStore } from '@/store/gameStore';
 import { Heart, Settings, Sparkles, Users } from 'lucide-react';
 import { memo, useState } from 'react';
 import AudioSettingsSheet from './AudioSettingsSheet';
@@ -11,7 +11,7 @@ const HUD: React.FC = memo(() => {
   const money = useGameStore((s) => s.money);
   const happiness = useGameStore((s) => s.happiness);
   const totalVisitors = useGameStore(selectTotalVisitors);
-  const incomePerTick = useGameStore(selectIncomePerTick);
+  const avgTicketCash = useGameStore(selectEstimatedAvgTicketCash);
 
   return (
     <header className="flex flex-col gap-2 px-3 pt-3 pb-2">
@@ -21,29 +21,17 @@ const HUD: React.FC = memo(() => {
           id="money-fly-target"
           className="from-park-orange/15 to-park-orange/15 ring-park-orange/20 relative flex items-center gap-2 rounded-[1rem] bg-gradient-to-r via-white px-3 py-1.5 ring-2"
         >
-          {/* Decorative money glow animation */}
-          <div
-            className="absolute -inset-0.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            style={{
-              background:
-                'conic-gradient(from 0deg, rgba(255,165,0,0.8) 0deg, rgba(255,255,255,0.9) 120deg, rgba(255,165,0,0.8) 240deg, transparent 360deg)',
-              borderRadius: 'inherit',
-              animation: 'money-glow 2s linear infinite',
-            }}
-          />
-
           <span
             className="relative z-10 text-2xl leading-none"
             role="img"
             aria-label="money"
-            style={{ filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.8))' }}
           >
             💰
           </span>
           <CountUp
             value={money}
             format={formatMoney}
-            className="text-park-orange font-display relative z-10 text-xl font-bold tabular-nums drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+            className="text-park-orange font-display relative z-10 text-xl font-bold tabular-nums"
           />
         </div>
 
@@ -58,8 +46,7 @@ const HUD: React.FC = memo(() => {
                     happiness > 60
                       ? 'conic-gradient(from 270deg, oklch(0.6 0.15 28) 0deg 150deg, oklch(0.9 0.01 135) 150deg 360deg)'
                       : 'oklch(0.7 0.05 140)',
-                  boxShadow: happiness > 60 ? '0 0 12px rgba(220,38,38,0.6), 0 2px 0 oklch(0.9 0.01 135)' : 'none',
-                  animation: 'float 3s ease-in-out infinite',
+                  boxShadow: happiness > 60 ? '0 0 8px rgba(220,38,38,0.4)' : 'none',
                 }}
               >
                 <Heart
@@ -84,7 +71,6 @@ const HUD: React.FC = memo(() => {
             aria-label="Open sound settings"
             style={{
               boxShadow: '0 2px 0 rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8)',
-              backdropFilter: 'blur(6px)',
             }}
           >
             <Settings className="h-4 w-4" />
@@ -96,31 +82,13 @@ const HUD: React.FC = memo(() => {
 
       <BuffBar />
 
-      {/* Arcade-style income indicator with particle effects */}
-      {incomePerTick > 0 && (
-        <div
-          className="text-park-green relative flex items-center justify-center gap-1.5 text-xs"
-          style={{ animation: 'float 3s ease-in-out infinite' }}
-        >
-          {/* Decorative income glow */}
-          <div
-            className="absolute -inset-0.5 animate-pulse opacity-0 transition-opacity duration-300 group-hover:opacity-20"
-            style={{
-              background:
-                'conic-gradient(from 45deg, rgba(74,222,128,0.9) 0deg, rgba(255,255,255,0.9) 60deg, rgba(74,222,128,0.9) 120deg)',
-              borderRadius: 'inherit',
-              filter: 'blur(8px)',
-            }}
-          />
-
-          <Sparkles className="relative z-10 h-3 w-3" style={{ animation: 'sparkle 1.5s ease-in-out infinite' }} />
-          <span className="font-display relative z-10 font-medium tabular-nums">+{formatMoney(incomePerTick)}/s</span>
-
-          {/* Particle effects */}
-          <div
-            className="bg-park-green absolute -top-2 left-1/2 h-4 w-4 rounded-full opacity-60 blur-[2px]"
-            style={{ animation: 'particles 1.5s ease-in-out infinite' }}
-          />
+      {/* Typical ticket payout from park + upgrades (avg roll, no combo/crit). */}
+      {avgTicketCash > 0 && (
+        <div className="text-park-green flex items-center justify-center gap-1.5 text-xs">
+          <Sparkles className="h-3 w-3" />
+          <span className="font-display font-medium tabular-nums">
+            ~{formatMoney(avgTicketCash)} / tap
+          </span>
         </div>
       )}
     </header>

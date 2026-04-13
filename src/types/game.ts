@@ -3,12 +3,12 @@ export interface RideDefinition {
   name: string;
   emoji: string;
   baseCost: number;
+  /** Weight in the ticket booth formula: visitors × baseIncome × path income multipliers. */
   baseIncome: number;
   baseCapacity: number;
   category: 'gentle' | 'thrill' | 'water' | 'family';
 }
 
-/** Per-ride path upgrade (one-time purchase per node; parallel tracks per ride type). */
 export type RidePathEffectType = 'capacity_pct' | 'income_pct' | 'throughput_pct';
 
 export interface RidePathEffect {

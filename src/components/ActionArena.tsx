@@ -114,7 +114,7 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
             <Sparkles className="h-5 w-5 opacity-90 transition-transform duration-300 group-hover:rotate-12" />
           </div>
           <span className="text-park-cream text-[10px] font-medium opacity-90">
-            Tap fast for combo · rare crits · watch for golden tickets
+            Rides boost each tap · combo · crits · golden tickets grant buffs
           </span>
         </button>
       </div>

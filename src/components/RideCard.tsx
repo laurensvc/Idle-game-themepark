@@ -57,7 +57,7 @@ const RideCard: React.FC<RideCardProps> = memo(({ ride }) => {
       <div className="text-muted-foreground mt-2 flex items-center gap-3 text-xs">
         <span className="text-park-green flex items-center gap-0.5">
           <TrendingUp className="h-3 w-3" />
-          {formatMoney(income)}/s
+          +{formatMoney(income)} tap
         </span>
         {ride.visitors > 0 && <span>{ride.visitors} visitors</span>}
       </div>

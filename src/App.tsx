@@ -184,13 +184,8 @@ const App: React.FC = () => {
           </section>
         </main>
 
-        {/* Arcade-style footer with decorative elements */}
-        <footer className="border-border/30 from-park-cream/40 to-park-cream/10 border-park-orange/15 relative flex shrink-0 items-center justify-center gap-2 border-t-[3px] bg-gradient-to-b px-3 py-2">
-          {/* Decorative corner accents */}
-          <div className="bg-park-orange absolute top-1/2 left-0 h-3 w-3 -translate-x-full translate-y-[-50%] rounded-bl-lg opacity-60" />
-          <div className="bg-park-orange absolute top-1/2 right-0 h-3 w-3 translate-x-full translate-y-[-50%] rounded-br-lg opacity-60" />
-          <div className="bg-park-green absolute bottom-1/2 left-0 h-3 w-3 -translate-x-full translate-y-[50%] rounded-bl-lg opacity-40" />
-          <div className="bg-park-green absolute right-0 bottom-1/2 h-3 w-3 translate-x-full translate-y-[50%] rounded-br-lg opacity-40" />
+        {/* Footer */}
+        <footer className="border-border/30 from-park-cream/40 to-park-cream/10 border-park-orange/15 flex shrink-0 items-center justify-center gap-2 border-t-[3px] bg-gradient-to-b px-3 py-2">
           <button
             type="button"
             onClick={() => openAux('visitors')}

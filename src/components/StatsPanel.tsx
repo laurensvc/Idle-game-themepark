@@ -1,6 +1,6 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatMoney, formatNumber } from '@/lib/utils';
-import { selectIncomePerTick, selectOperatingCount, selectTotalVisitors, useGameStore } from '@/store/gameStore';
+import { selectEstimatedAvgTicketCash, selectOperatingCount, selectTotalVisitors, useGameStore } from '@/store/gameStore';
 import { Clock, DollarSign, ShoppingBag, Star, Ticket, TrendingUp, Users } from 'lucide-react';
 import { memo } from 'react';
 
@@ -12,7 +12,7 @@ const StatsPanel: React.FC = memo(() => {
   const upgrades = useGameStore((s) => s.upgrades);
   const tickCount = useGameStore((s) => s.tickCount);
   const happiness = useGameStore((s) => s.happiness);
-  const incomePerTick = useGameStore(selectIncomePerTick);
+  const avgTicketCash = useGameStore(selectEstimatedAvgTicketCash);
   const currentVisitors = useGameStore(selectTotalVisitors);
   const operatingCount = useGameStore(selectOperatingCount);
 
@@ -24,8 +24,8 @@ const StatsPanel: React.FC = memo(() => {
     },
     {
       icon: <TrendingUp className="text-park-green h-5 w-5" />,
-      label: 'Income / second',
-      value: `${formatMoney(incomePerTick)}/s`,
+      label: 'Est. ticket tap',
+      value: `~${formatMoney(avgTicketCash)} (avg roll)`,
     },
     {
       icon: <DollarSign className="text-park-coin h-5 w-5" />,

@@ -49,12 +49,35 @@ const getUpgradeIncomeMultiplier = (upgrades: PurchasedUpgrade[]): number => {
 };
 
 /** Active buffs multiply per stack of the same kind. */
+/** Multiplies ticket booth cash from park rides (was “ride income”). */
 const getRideIncomeBuffMultiplier = (activeBuffs: ActiveBuff[]): number => {
   let m = 1;
   for (let i = 0; i < activeBuffs.length; i++) {
     if (activeBuffs[i].kind === 'ride_income') m *= activeBuffs[i].magnitude;
   }
   return m;
+};
+
+/**
+ * Sum of (visitors × baseIncome × path income multipliers) × global income upgrades × ride frenzy buff.
+ * Ticket booth multiplies its dice roll by this (minimum 1 so the booth always pays something).
+ */
+const getParkTicketValueMultiplier = (
+  rides: RideInstance[],
+  upgrades: PurchasedUpgrade[],
+  rideIncomeBuffMult: number
+): number => {
+  const incomeMult = getUpgradeIncomeMultiplier(upgrades);
+  let sum = 0;
+  for (let i = 0; i < rides.length; i++) {
+    const ride = rides[i];
+    const def = getRideDefinition(ride.definitionId);
+    if (!def) continue;
+    const pathM = getRidePathStatMultipliers(ride.pathTrackLevels, ride.definitionId);
+    sum += ride.visitors * def.baseIncome * pathM.income;
+  }
+  const raw = sum * incomeMult * rideIncomeBuffMult;
+  return Math.max(1, raw);
 };
 
 const getVisitorSpawnBuffMultiplier = (activeBuffs: ActiveBuff[]): number => {
@@ -119,8 +142,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   tick: () => {
     set((state) => {
       const newTickCount = state.tickCount + 1;
-      let money = state.money;
-      let totalMoneyEarned = state.totalMoneyEarned;
       let totalVisitorsServed = state.totalVisitorsServed;
       const prevRides = state.rides;
       const notifications = [...state.notifications];
@@ -131,7 +152,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const b = state.activeBuffs[i];
         if (b.expiresAtTick > newTickCount) activeBuffsFiltered.push(b);
       }
-      const rideIncomeBuffMult = getRideIncomeBuffMultiplier(activeBuffsFiltered);
       const visitorSpawnBuffMult = getVisitorSpawnBuffMultiplier(activeBuffsFiltered);
 
       let goldenTicket: GoldenTicketState = { ...state.goldenTicket };
@@ -161,8 +181,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       let happinessBoost = 0;
       let visitorAttractionMult = 1;
       let capacityMult = 1;
-      let incomeMult = getUpgradeIncomeMultiplier(upgrades);
-
       for (let i = 0; i < upgrades.length; i++) {
         const def = UPGRADE_BY_ID.get(upgrades[i].upgradeId);
         if (!def) continue;
@@ -181,7 +199,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
       }
 
-      const incomeMultTotal = incomeMult * rideIncomeBuffMult;
       visitorAttractionMult *= visitorSpawnBuffMult;
 
       const operatingCount = prevRides.length;
@@ -200,9 +217,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const capacity = Math.round(def.baseCapacity * pathM.capacity * capacityMult);
         const happinessFactor = state.happiness / 100;
         const visitors = Math.round(capacity * happinessFactor);
-        const income = visitors * def.baseIncome * pathM.income * incomeMultTotal;
-        money += income;
-        totalMoneyEarned += income;
         newRides.push({ ...ride, ticksSincePurchase, visitors });
       }
 
@@ -246,12 +260,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
 
       return {
-        money,
+        money: state.money,
         rides: newRides,
         happiness,
         visitors,
         tickCount: newTickCount,
-        totalMoneyEarned,
+        totalMoneyEarned: state.totalMoneyEarned,
         totalVisitorsServed,
         notifications: [...notifications],
         activeBuffs: activeBuffsFiltered,
@@ -347,6 +361,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     const activeBuffs = state.activeBuffs.filter((b) => b.expiresAtTick > state.tickCount);
     const ticketBuffMult = getTicketCashBuffMultiplier(activeBuffs);
+    const rideIncomeBuffMult = getRideIncomeBuffMultiplier(activeBuffs);
+    const parkTicketMult = getParkTicketValueMultiplier(state.rides, state.upgrades, rideIncomeBuffMult);
 
     const comboExpired = clickMs - state.lastTicketClickMs > BALANCE.comboWindowMs;
     const combo = comboExpired ? 1 : Math.min(state.ticketComboCount + 1, BALANCE.comboMaxStacks);
@@ -355,7 +371,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const comboMult = 1 + (combo - 1) * BALANCE.comboBonusPerStack;
     const isCrit = Math.random() < BALANCE.critChance;
     const critMult = isCrit ? BALANCE.critIncomeMultiplier : 1;
-    const amount = Math.max(1, Math.round(base * comboMult * critMult * ticketBuffMult));
+    const amount = Math.max(1, Math.round(base * comboMult * critMult * ticketBuffMult * parkTicketMult));
 
     if (isCrit) playGameSfx('crit_hit');
     else playGameSfx('cash_collect');
@@ -377,7 +393,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     playGameSfx('golden_ticket');
     const tick = state.tickCount;
     const roll = Math.random();
-    let moneyDelta = 0;
     let happyDelta = 0;
     const newBuffs = state.activeBuffs.filter((b) => b.expiresAtTick > tick);
     const notifs = [...state.notifications];
@@ -392,10 +407,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
 
     if (roll < 0.3) {
-      moneyDelta = randomInt(BALANCE.goldenMoneyMin, BALANCE.goldenMoneyMax);
+      pushBuff('ticket_cash', Math.round(BALANCE.buffTicketRushTicks * 1.4), 2.5);
       notifs.push({
         id: `notif_${nextNotificationId++}`,
-        message: `🎫 Golden payout: +$${moneyDelta}!`,
+        message: `🎫 Golden bonus: 2.5× ticket booth for a bit!`,
         type: 'success',
         tick,
       });
@@ -403,7 +418,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       pushBuff('ride_income', BALANCE.buffRideIncomeFrenzyTicks, BALANCE.buffRideIncomeFrenzyMult);
       notifs.push({
         id: `notif_${nextNotificationId++}`,
-        message: `⚡ Ride frenzy: ${BALANCE.buffRideIncomeFrenzyMult}× income for a bit!`,
+        message: `⚡ Ride frenzy: ${BALANCE.buffRideIncomeFrenzyMult}× ticket booth from park!`,
         type: 'success',
         tick,
       });
@@ -425,10 +440,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       });
     } else {
       happyDelta = BALANCE.goldenHappinessBump;
-      moneyDelta = randomInt(BALANCE.goldenVipTipMin, BALANCE.goldenVipTipMax);
+      pushBuff('ticket_cash', BALANCE.buffTicketRushTicks, 1.75);
       notifs.push({
         id: `notif_${nextNotificationId++}`,
-        message: `🌟 VIP visit: +$${moneyDelta} tips + mood boost!`,
+        message: `🌟 VIP visit: mood boost + 1.75× tickets for a bit!`,
         type: 'success',
         tick,
       });
@@ -439,8 +454,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     set({
-      money: state.money + moneyDelta,
-      totalMoneyEarned: state.totalMoneyEarned + moneyDelta,
       happiness: clamp(state.happiness + happyDelta, 0, 100),
       activeBuffs: newBuffs,
       goldenTicket: {
@@ -486,18 +499,17 @@ export const selectRides = (s: GameStore): RideInstance[] => s.rides;
 export const selectVisitors = (s: GameStore): Visitor[] => s.visitors;
 export const selectTickCount = (s: GameStore): number => s.tickCount;
 
-export const selectIncomePerTick = (s: GameStore): number => {
+/** Typical ticket tap (avg dice × park rides × upgrades × buffs); excludes combo/crit variance. */
+export const selectEstimatedAvgTicketCash = (s: GameStore): number => {
   const activeBuffs = s.activeBuffs.filter((b) => b.expiresAtTick > s.tickCount);
-  const incomeMultTotal = getUpgradeIncomeMultiplier(s.upgrades) * getRideIncomeBuffMultiplier(activeBuffs);
-  let income = 0;
-  for (let i = 0; i < s.rides.length; i++) {
-    const ride = s.rides[i];
-    const def = getRideDefinition(ride.definitionId);
-    if (!def) continue;
-    const pathM = getRidePathStatMultipliers(ride.pathTrackLevels, ride.definitionId);
-    income += ride.visitors * def.baseIncome * pathM.income * incomeMultTotal;
-  }
-  return income;
+  const avgBase = (BALANCE.ticketBoothMin + BALANCE.ticketBoothMax) / 2;
+  const parkMult = getParkTicketValueMultiplier(
+    s.rides,
+    s.upgrades,
+    getRideIncomeBuffMultiplier(activeBuffs)
+  );
+  const ticketBuff = getTicketCashBuffMultiplier(activeBuffs);
+  return Math.max(1, Math.round(avgBase * parkMult * ticketBuff));
 };
 
 /**

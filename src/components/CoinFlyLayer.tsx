@@ -20,7 +20,7 @@ const CoinFlyLayer: React.FC<CoinFlyLayerProps> = memo(({ items, onItemDone }) =
       {items.map((f) => (
         <motion.div
           key={f.id}
-          className="border-park-orange/30 bg-park-orange/15 pointer-events-none fixed z-200 flex h-10 w-10 items-center justify-center rounded-full border text-xl shadow-lg backdrop-blur-sm select-none"
+          className="border-park-orange/30 bg-park-orange/15 pointer-events-none fixed z-200 flex h-10 w-10 items-center justify-center rounded-full border text-xl shadow-lg select-none"
           aria-hidden
           initial={{
             left: f.sx,

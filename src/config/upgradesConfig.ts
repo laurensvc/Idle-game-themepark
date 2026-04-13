@@ -41,7 +41,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: 'income_boost',
     name: 'Premium Tickets',
-    description: 'All rides earn +20% income',
+    description: '+20% ticket booth cash from your park rides',
     cost: 900,
     category: 'ride',
     effect: { type: 'income_boost', value: 0.2 },

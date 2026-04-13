@@ -59,7 +59,7 @@ const RideInspector: React.FC = memo(() => {
         <div className="grid grid-cols-2 gap-3">
           <StatBox
             icon={<TrendingUp className="text-park-green h-4 w-4" />}
-            label="Income/s"
+            label="Ticket value"
             value={formatMoney(income)}
           />
           <StatBox icon={<Armchair className="text-park-blue h-4 w-4" />} label="Capacity" value={String(capacity)} />
