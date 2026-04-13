@@ -19,9 +19,9 @@ const RideCard: React.FC<RideCardProps> = memo(({ ride }) => {
 
   if (!def) return null;
 
-  const pathM = getRidePathStatMultipliers(ride.purchasedPathIds, ride.definitionId);
+  const pathM = getRidePathStatMultipliers(ride.pathTrackLevels, ride.definitionId);
   const income = ride.visitors * def.baseIncome * pathM.income;
-  const upgradeCount = ride.purchasedPathIds.length;
+  const upgradeCount = Object.values(ride.pathTrackLevels).reduce((a, n) => a + n, 0);
 
   return (
     <div

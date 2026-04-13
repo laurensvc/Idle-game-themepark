@@ -1,6 +1,6 @@
 export const BALANCE = {
   // --- Starting state ---
-  startingMoney: 0,
+  startingMoney: 10000000000,
   startingHappiness: 80,
 
   // --- Revenue ---

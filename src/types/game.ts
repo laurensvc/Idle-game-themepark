@@ -17,24 +17,15 @@ export interface RidePathEffect {
   value: number;
 }
 
-export interface RidePathUpgradeDefinition {
-  id: string;
-  rideId: string;
-  name: string;
-  description: string;
-  icon: string;
-  cost: number;
-  prerequisiteId?: string;
-  effects: RidePathEffect[];
-}
+/** Per ride: path track suffix → number of purchases on that track (capped in config). */
+export type RidePathTrackLevels = Record<string, number>;
 
 export interface RideInstance {
   id: string;
   definitionId: string;
   ticksSincePurchase: number;
   visitors: number;
-  /** Purchased node ids from `ridePathUpgrades` for this ride type. */
-  purchasedPathIds: string[];
+  pathTrackLevels: RidePathTrackLevels;
 }
 
 export type VisitorType = 'family' | 'thrill_seeker' | 'child' | 'elderly' | 'teen';
@@ -132,7 +123,8 @@ export interface GameState {
 export interface GameActions {
   tick: () => void;
   buyRide: (definitionId: string) => void;
-  purchaseRidePathUpgrade: (rideId: string, pathUpgradeId: string) => void;
+  /** `trackSuffix` matches `PATH_TRACKS[].suffix` (e.g. `dispatch`, `seating`). */
+  purchaseRidePathUpgrade: (rideId: string, trackSuffix: string) => void;
   buyUpgrade: (upgradeId: string) => void;
   /** `clickMs` should be `performance.now()` from the click handler for combo timing. */
   ticketBooth: (clickMs: number) => TicketBoothResult;

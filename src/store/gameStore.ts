@@ -1,6 +1,7 @@
 import { playGameSfx } from '@/audio/soundManager';
 import { BALANCE } from '@/config/balanceConfig';
-import { getPathUpgradeDefinition, getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
+import { PATH_MAX_LEVEL, PATH_TRACK_BY_SUFFIX, getNextPathUpgradeCost } from '@/config/ridePathConfig';
+import { getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
 import { RIDE_DEFINITIONS, getRideDefinition } from '@/config/rideDataConfig';
 import { UPGRADE_DEFINITIONS } from '@/config/upgradesConfig';
 import { AUDIO_STORAGE_KEY, loadPersistedAudioSettings } from '@/lib/audioStorage';
@@ -72,7 +73,7 @@ const createRideInstance = (definitionId: string): RideInstance => ({
   definitionId,
   ticksSincePurchase: 0,
   visitors: 0,
-  purchasedPathIds: [],
+  pathTrackLevels: {},
 });
 
 const saveAudioSettings = (settings: AudioSettings): void => {
@@ -195,7 +196,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           continue;
         }
 
-        const pathM = getRidePathStatMultipliers(ride.purchasedPathIds, ride.definitionId);
+        const pathM = getRidePathStatMultipliers(ride.pathTrackLevels, ride.definitionId);
         const capacity = Math.round(def.baseCapacity * pathM.capacity * capacityMult);
         const happinessFactor = state.happiness / 100;
         const visitors = Math.round(capacity * happinessFactor);
@@ -281,31 +282,37 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  purchaseRidePathUpgrade: (rideId: string, pathUpgradeId: string) => {
+  purchaseRidePathUpgrade: (rideId: string, trackSuffix: string) => {
     const state = get();
     const rideIndex = state.rides.findIndex((r) => r.id === rideId);
     if (rideIndex === -1) return;
     const ride = state.rides[rideIndex];
-    const pathDef = getPathUpgradeDefinition(pathUpgradeId);
-    if (!pathDef || pathDef.rideId !== ride.definitionId) return;
-    if (ride.purchasedPathIds.includes(pathUpgradeId)) return;
-    if (pathDef.prerequisiteId && !ride.purchasedPathIds.includes(pathDef.prerequisiteId)) return;
-    if (state.money < pathDef.cost) return;
+    const track = PATH_TRACK_BY_SUFFIX.get(trackSuffix);
+    if (!track) return;
+
+    const level = ride.pathTrackLevels[trackSuffix] ?? 0;
+    if (level >= PATH_MAX_LEVEL) return;
 
     const rideDef = getRideDefinition(ride.definitionId);
     if (!rideDef) return;
 
+    const cost = getNextPathUpgradeCost(rideDef.baseCost, track, level);
+    if (state.money < cost) return;
+
     playGameSfx('upgrade');
     const newRides = [...state.rides];
-    newRides[rideIndex] = { ...ride, purchasedPathIds: [...ride.purchasedPathIds, pathUpgradeId] };
+    newRides[rideIndex] = {
+      ...ride,
+      pathTrackLevels: { ...ride.pathTrackLevels, [trackSuffix]: level + 1 },
+    };
     set({
-      money: state.money - pathDef.cost,
+      money: state.money - cost,
       rides: newRides,
       notifications: [
         ...state.notifications,
         {
           id: `notif_${nextNotificationId++}`,
-          message: `${rideDef.emoji} ${pathDef.name} unlocked!`,
+          message: `${rideDef.emoji} ${track.nameBase} → level ${level + 1}`,
           type: 'success',
           tick: state.tickCount,
         },
@@ -487,7 +494,7 @@ export const selectIncomePerTick = (s: GameStore): number => {
     const ride = s.rides[i];
     const def = getRideDefinition(ride.definitionId);
     if (!def) continue;
-    const pathM = getRidePathStatMultipliers(ride.purchasedPathIds, ride.definitionId);
+    const pathM = getRidePathStatMultipliers(ride.pathTrackLevels, ride.definitionId);
     income += ride.visitors * def.baseIncome * pathM.income * incomeMultTotal;
   }
   return income;

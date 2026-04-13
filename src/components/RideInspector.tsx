@@ -2,11 +2,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { getPathUpgradesForRide, getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
+import { getNextPathUpgradeCost, PATH_MAX_LEVEL, PATH_TRACKS } from '@/config/ridePathConfig';
 import { getRideDefinition } from '@/config/rideDataConfig';
+import { getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
 import { cn, formatMoney } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
-import { Armchair, Lock, TrendingUp, Users } from 'lucide-react';
+import { Armchair, TrendingUp, Users } from 'lucide-react';
 import { memo } from 'react';
 
 const RideInspector: React.FC = memo(() => {
@@ -27,9 +28,8 @@ const RideInspector: React.FC = memo(() => {
     );
   }
 
-  const pathM = getRidePathStatMultipliers(ride.purchasedPathIds, ride.definitionId);
-  const pathDefs = getPathUpgradesForRide(ride.definitionId);
-  const purchasedSet = new Set(ride.purchasedPathIds);
+  const pathM = getRidePathStatMultipliers(ride.pathTrackLevels, ride.definitionId);
+  const pathLevelTotal = Object.values(ride.pathTrackLevels).reduce((a, n) => a + n, 0);
 
   const income = ride.visitors * def.baseIncome * pathM.income;
   const capacity = Math.round(def.baseCapacity * pathM.capacity);
@@ -52,7 +52,7 @@ const RideInspector: React.FC = memo(() => {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="operating">Running</Badge>
           <Badge variant="secondary" className="tabular-nums">
-            {ride.purchasedPathIds.length} path upgrade{ride.purchasedPathIds.length === 1 ? '' : 's'}
+            {pathLevelTotal} path level{pathLevelTotal === 1 ? '' : 's'}
           </Badge>
         </div>
 
@@ -75,44 +75,47 @@ const RideInspector: React.FC = memo(() => {
         <div>
           <h3 className="text-foreground mb-2 text-sm font-bold">Upgrade paths</h3>
           <p className="text-muted-foreground mb-3 text-xs">
-            Four tracks: faster dispatch, seating, pricing, and gift shops. Each has three tiers — buy the previous tier
-            first.
+            Four tracks — repeat purchases per track. Cost scales exponentially with level; each level adds a growing
+            bonus slice, up to {PATH_MAX_LEVEL} per track.
           </p>
           <div className="space-y-2">
-            {pathDefs.map((p) => {
-              const owned = purchasedSet.has(p.id);
-              const prereqMet = !p.prerequisiteId || purchasedSet.has(p.prerequisiteId);
-              const canAfford = money >= p.cost;
-              const canBuy = !owned && prereqMet && canAfford;
+            {PATH_TRACKS.map((p) => {
+              const level = ride.pathTrackLevels[p.suffix] ?? 0;
+              const atCap = level >= PATH_MAX_LEVEL;
+              const nextCost = atCap ? 0 : getNextPathUpgradeCost(def.baseCost, p, level);
+              const canAfford = !atCap && money >= nextCost;
+              const canBuy = !atCap && canAfford;
 
               return (
                 <div
-                  key={p.id}
+                  key={p.suffix}
                   className={cn(
                     'park-card flex items-start gap-3 p-3',
-                    owned && 'bg-park-green/5 opacity-70',
-                    !prereqMet && !owned && 'opacity-45'
+                    level > 0 && 'bg-park-green/5',
+                    atCap && 'opacity-80'
                   )}
                 >
                   <span className="shrink-0 text-xl">{p.icon}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1 text-sm font-semibold">
-                      {p.name}
-                      {!prereqMet && !owned && <Lock className="text-muted-foreground h-3 w-3" />}
+                    <div className="flex flex-wrap items-center gap-x-2 text-sm font-semibold">
+                      <span>{p.nameBase}</span>
+                      <span className="text-muted-foreground text-xs font-normal tabular-nums">
+                        {atCap ? `max ${PATH_MAX_LEVEL}` : `level ${level} / ${PATH_MAX_LEVEL}`}
+                      </span>
                     </div>
                     <div className="text-muted-foreground text-xs">{p.description}</div>
                   </div>
-                  {owned ? (
-                    <span className="text-park-green shrink-0 text-xs font-semibold">Owned</span>
+                  {atCap ? (
+                    <span className="text-muted-foreground shrink-0 text-xs font-semibold">Maxed</span>
                   ) : (
                     <Button
                       variant="coin"
                       size="sm"
                       disabled={!canBuy}
-                      onClick={() => purchaseRidePathUpgrade(ride.id, p.id)}
+                      onClick={() => purchaseRidePathUpgrade(ride.id, p.suffix)}
                       className="shrink-0"
                     >
-                      {formatMoney(p.cost)}
+                      {formatMoney(nextCost)}
                     </Button>
                   )}
                 </div>
