@@ -231,12 +231,7 @@
 @layer components {
   .park-card {
     @apply bg-card border-border/60 rounded-xl border shadow-sm;
-    transition:
-      box-shadow 0.2s ease-out,
-      transform 0.15s ease-out;
-  }
-  .park-card:active {
-    transform: scale(0.98);
+    transition: box-shadow 0.2s ease-out;
   }
 
   .park-button {

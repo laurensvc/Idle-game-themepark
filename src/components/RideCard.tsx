@@ -26,7 +26,7 @@ const RideCard: React.FC<RideCardProps> = memo(({ ride }) => {
   return (
     <div
       className={cn(
-        'park-card border-l-park-green ring-offset-background cursor-pointer border-l-4 p-3 transition-shadow',
+        'park-card border-l-park-green ring-offset-background cursor-pointer border-l-4 p-3 transition-shadow active:scale-[0.99]',
         isSelected && 'ring-primary ring-2 ring-offset-2'
       )}
       onClick={() => selectRide(ride.id)}

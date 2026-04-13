@@ -15,29 +15,23 @@ const HUD: React.FC = memo(() => {
 
   return (
     <header className="flex flex-col gap-2 px-3 pt-3 pb-2">
-      {/* Arcade-style money display with neon glow effect */}
       <div className="relative flex items-center justify-between">
         <div
           id="money-fly-target"
-          className="from-park-orange/15 to-park-orange/15 ring-park-orange/20 relative flex items-center gap-2 rounded-[1rem] bg-gradient-to-r via-white px-3 py-1.5 ring-2"
+          className="border-border/60 bg-card text-card-foreground relative flex items-center gap-2 rounded-lg border px-3 py-1.5"
         >
-          <span
-            className="relative z-10 text-2xl leading-none"
-            role="img"
-            aria-label="money"
-          >
+          <span className="text-2xl leading-none" role="img" aria-label="money">
             💰
           </span>
           <CountUp
             value={money}
             format={formatMoney}
-            className="text-park-orange font-display relative z-10 text-xl font-bold tabular-nums"
+            className="text-park-orange font-display text-xl font-bold tabular-nums"
           />
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Arcade-style stats container with decorative elements */}
-          <div className="to-park-cream/30 border-park-orange/10 flex items-center gap-4 rounded-xl border-2 bg-gradient-to-r from-white/80 p-1.5">
+          <div className="border-border/60 bg-card flex items-center gap-4 rounded-lg border px-2 py-1.5">
             <div className="flex items-center gap-2 px-2 py-1">
               <div
                 className={`relative h-5 w-5 rounded-full transition-all duration-300 ${happiness > 60 ? 'text-park-red scale-100' : 'text-muted-foreground scale-90'}`}
@@ -57,9 +51,8 @@ const HUD: React.FC = memo(() => {
               <span className="font-display font-semibold tabular-nums">{Math.round(happiness)}%</span>
             </div>
 
-            <div className="group relative flex items-center gap-2 px-2 py-1">
-              <div className="via-park-blue absolute inset-x-1/2 h-[3px] w-full -translate-x-1/2 rounded-full bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-60" />
-              <Users className="text-park-blue relative z-10 h-4 w-5 scale-110 transition-transform group-hover:scale-100" />
+            <div className="flex items-center gap-2 px-2 py-1">
+              <Users className="text-park-blue h-4 w-5" />
               <span className="font-display font-semibold tabular-nums">{totalVisitors}</span>
             </div>
           </div>
@@ -67,11 +60,8 @@ const HUD: React.FC = memo(() => {
           <button
             type="button"
             onClick={() => setAudioOpen(true)}
-            className="text-muted-foreground/80 hover:text-foreground border-border/25 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border-[2px] bg-white/60 transition-all duration-150 active:translate-y-[2px] active:border-transparent"
+            className="text-muted-foreground hover:text-foreground border-border/60 bg-card flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-colors"
             aria-label="Open sound settings"
-            style={{
-              boxShadow: '0 2px 0 rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8)',
-            }}
           >
             <Settings className="h-4 w-4" />
           </button>

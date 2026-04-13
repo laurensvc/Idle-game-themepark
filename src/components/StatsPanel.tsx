@@ -66,11 +66,11 @@ const StatsPanel: React.FC = memo(() => {
 
   return (
     <ScrollArea className="min-h-0 flex-1">
-      <div className="space-y-2 px-3 pb-3">
+      <div className="border-border/60 bg-card divide-border/60 mx-3 mb-3 divide-y rounded-xl border">
         {stats.map((stat) => (
-          <div key={stat.label} className="park-card flex items-center gap-3 p-3">
+          <div key={stat.label} className="flex items-center gap-3 px-3 py-2.5">
             {stat.icon}
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <div className="text-muted-foreground text-xs">{stat.label}</div>
               <div className="text-sm font-bold tabular-nums">{stat.value}</div>
             </div>

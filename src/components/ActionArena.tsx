@@ -90,11 +90,7 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
   return (
     <div
       ref={arenaRef}
-      className={cn(
-        'border-park-orange/20 relative border-b',
-        'from-park-orange/9 via-park-orange/2 to-background bg-linear-to-b',
-        'px-3 pt-2 pb-3 shadow-[inset_0_1px_0_0_oklch(0.99_0.02_85/0.6)]'
-      )}
+      className={cn('border-border/60 relative border-b bg-muted/20 px-3 pt-2 pb-3')}
     >
       <div className="flex flex-col gap-2">
         <button

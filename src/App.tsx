@@ -109,45 +109,15 @@ const App: React.FC = () => {
   }, []);
 
   const columnChrome =
-    'border-border/20 bg-gradient-to-br from-white to-park-cream/20 flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border-[3px] border-park-orange/15 shadow-[0_6px_0_rgb(255,255,255)/.8] hover:shadow-[0_8px_0_rgb(255,255,255)/.7] transition-all duration-150 cursor-pointer active:translate-y-[3px] active:shadow-[0_3px_0_rgb(255,255,255)]';
+    'border-border/60 bg-card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border shadow-sm';
 
   return (
     <div onClick={handleUserGesture}>
-      {/* Arcade-style animated background pattern */}
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 opacity-5"
-        style={{
-          backgroundImage: `
-            radial-gradient(circle at 25% 25%, oklch(0.78 0.17 68) 2px, transparent 3px),
-            radial-gradient(circle at 75% 75%, oklch(0.55 0.22 150) 2px, transparent 3px),
-            radial-gradient(circle at 40% 60%, oklch(0.68 0.16 235) 1px, transparent 2px),
-            radial-gradient(circle at 80% 30%, oklch(0.72 0.20 55) 1px, transparent 2px)
-          `,
-          backgroundSize: '60px 60px',
-          animation: 'bg-drift 20s linear infinite',
-        }}
-      />
-
-      {/* Arcade-style decorative border glow */}
-      <div className="from-park-green/20 to-park-orange/10 pointer-events-none absolute inset-0 -z-10 rounded-[3rem] bg-gradient-to-br via-transparent p-[3px]" />
-
       <div className="bg-background text-foreground relative mx-auto flex h-dvh w-full max-w-[1600px] flex-col overflow-hidden">
-        {/* Keyframe definition for background drift */}
-        <style>{`
-          @keyframes bg-drift {
-            from { background-position: 0 0; }
-            to { background-position: 60px 60px; }
-          }
-        `}</style>
-        {/* Decorative header arcade frame */}
         <div className="relative shrink-0 px-3 pt-3 sm:px-4">
-          <div className="via-park-yellow absolute top-0 left-1/2 h-1 w-1/2 -translate-x-1/2 bg-gradient-to-r from-transparent to-transparent" />
           <HUD />
         </div>
-        {/* Arcade-style decorative elements for Action Arena */}
-        <div className="group relative shrink-0 px-3 sm:px-4">
-          <div className="via-park-green/40 absolute inset-x-2 top-0 h-[1px] bg-gradient-to-r from-transparent to-transparent opacity-50" />
-          <div className="via-park-orange/40 absolute inset-x-2 bottom-0 h-[1px] bg-gradient-to-r from-transparent to-transparent opacity-50" />
+        <div className="relative shrink-0 px-3 sm:px-4">
           <ActionArena onTicketCashFly={handleTicketCashFly} />
         </div>
         <CoinFlyLayer items={coinFlies} onItemDone={handleCoinFlyDone} />
@@ -185,7 +155,7 @@ const App: React.FC = () => {
         </main>
 
         {/* Footer */}
-        <footer className="border-border/30 from-park-cream/40 to-park-cream/10 border-park-orange/15 flex shrink-0 items-center justify-center gap-2 border-t-[3px] bg-gradient-to-b px-3 py-2">
+        <footer className="border-border/30 from-park-cream/40 to-park-cream/10 flex shrink-0 items-center justify-center gap-2 border-t-[3px] bg-linear-to-b px-3 py-2">
           <button
             type="button"
             onClick={() => openAux('visitors')}

@@ -31,50 +31,48 @@ const VisitorPanel: React.FC = memo(() => {
   return (
     <ScrollArea className="min-h-0 flex-1">
       <div className="space-y-4 px-3 pb-3">
-        <div className="park-card flex items-center justify-between p-4">
-          <div>
-            <div className="text-muted-foreground text-xs">Current Visitors</div>
-            <div className="text-2xl font-bold tabular-nums">{totalVisitors}</div>
+        <div className="border-border/60 bg-card divide-border/60 divide-y rounded-xl border">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <div className="text-muted-foreground text-xs">Current Visitors</div>
+              <div className="text-2xl font-bold tabular-nums">{totalVisitors}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-muted-foreground text-xs">Groups</div>
+              <div className="text-2xl font-bold tabular-nums">{visitors.length}</div>
+            </div>
           </div>
-          <div className="text-right">
-            <div className="text-muted-foreground text-xs">Groups</div>
-            <div className="text-2xl font-bold tabular-nums">{visitors.length}</div>
+          <div className="px-4 py-3">
+            <div className="text-muted-foreground mb-1 text-xs">Happiness influence</div>
+            <div className="park-bar h-3">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${happiness}%`,
+                  background:
+                    happiness > 60
+                      ? 'var(--color-park-green)'
+                      : happiness > 30
+                        ? 'var(--color-park-yellow)'
+                        : 'var(--color-park-red)',
+                }}
+              />
+            </div>
+            <div className="text-muted-foreground mt-1 text-xs">
+              {happiness < 20
+                ? 'Visitors are leaving! Fix problems ASAP.'
+                : happiness < 50
+                  ? 'Visitors are unhappy. Start rides and keep them running!'
+                  : 'Visitors are enjoying your park!'}
+            </div>
           </div>
-        </div>
-
-        <div className="park-card p-4">
-          <div className="text-muted-foreground mb-1 text-xs">Happiness influence</div>
-          <div className="park-bar h-3">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${happiness}%`,
-                background:
-                  happiness > 60
-                    ? 'var(--color-park-green)'
-                    : happiness > 30
-                      ? 'var(--color-park-yellow)'
-                      : 'var(--color-park-red)',
-              }}
-            />
-          </div>
-          <div className="text-muted-foreground mt-1 text-xs">
-            {happiness < 20
-              ? 'Visitors are leaving! Fix problems ASAP.'
-              : happiness < 50
-                ? 'Visitors are unhappy. Start rides and keep them running!'
-                : 'Visitors are enjoying your park!'}
-          </div>
-        </div>
-
-        <div className="grid gap-2">
           {(Object.keys(visitorTypeConfig) as VisitorType[]).map((type) => {
             const { label, emoji } = visitorTypeConfig[type];
             const count = countByType[type];
             return (
-              <div key={type} className="park-card flex items-center gap-3 p-3">
+              <div key={type} className="flex items-center gap-3 px-4 py-2.5">
                 <span className="text-xl">{emoji}</span>
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold">{label}</div>
                 </div>
                 <span className="text-sm font-bold tabular-nums">{count}</span>

@@ -35,7 +35,7 @@ const ShopPanel: React.FC = memo(() => {
                 <div
                   key={def.id}
                   className={cn(
-                    'park-card flex items-center gap-3 p-3',
+                    'border-border/60 flex items-center gap-3 rounded-lg border bg-card px-3 py-3',
                     owned && 'bg-park-green/5 opacity-70',
                     !owned && !canAfford && 'opacity-60'
                   )}
@@ -84,7 +84,7 @@ const ShopPanel: React.FC = memo(() => {
                 <div
                   key={def.id}
                   className={cn(
-                    'park-card flex items-center gap-3 p-3',
+                    'border-border/60 flex items-center gap-3 rounded-lg border bg-card px-3 py-3',
                     owned && 'bg-park-green/5 opacity-50',
                     !prereqMet && 'opacity-40'
                   )}
