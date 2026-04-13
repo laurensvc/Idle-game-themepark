@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { RIDE_DEFINITIONS } from '@/data/rides';
-import { UPGRADE_DEFINITIONS } from '@/data/upgrades';
+import { RIDE_DEFINITIONS } from '@/config/rideDataConfig';
+import { UPGRADE_DEFINITIONS } from '@/config/upgradesConfig';
 import { cn, formatMoney } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
 import { Lock, ShoppingCart } from 'lucide-react';

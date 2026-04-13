@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
-import { getRideDefinition } from '@/data/rides';
+import { getRideDefinition } from '@/config/rideDataConfig';
 import { cn, formatMoney } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
 import type { RideInstance } from '@/types/game';

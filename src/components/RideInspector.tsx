@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { getPathUpgradesForRide, getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
-import { getRideDefinition } from '@/data/rides';
+import { getRideDefinition } from '@/config/rideDataConfig';
 import { cn, formatMoney } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
 import { Armchair, Lock, TrendingUp, Users } from 'lucide-react';

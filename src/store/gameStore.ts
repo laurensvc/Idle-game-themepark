@@ -1,8 +1,8 @@
 import { playGameSfx } from '@/audio/soundManager';
-import { BALANCE } from '@/data/balance';
+import { BALANCE } from '@/config/balanceConfig';
 import { getPathUpgradeDefinition, getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
-import { RIDE_DEFINITIONS, getRideDefinition } from '@/data/rides';
-import { UPGRADE_DEFINITIONS } from '@/data/upgrades';
+import { RIDE_DEFINITIONS, getRideDefinition } from '@/config/rideDataConfig';
+import { UPGRADE_DEFINITIONS } from '@/config/upgradesConfig';
 import { AUDIO_STORAGE_KEY, loadPersistedAudioSettings } from '@/lib/audioStorage';
 import { clamp, randomInt } from '@/lib/utils';
 import type {
@@ -15,16 +15,24 @@ import type {
   RideInstance,
   TicketBoothResult,
   Visitor,
-  VisitorType,
 } from '@/types/game';
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
-const VISITOR_TYPES: VisitorType[] = ['family', 'thrill_seeker', 'child', 'elderly', 'teen'];
+import { VISITOR_TYPES } from '@/config/gameConstants';
+
+const getTicketCashBuffMultiplier = (activeBuffs: ActiveBuff[]): number => {
+  let m = 1;
+  for (let i = 0; i < activeBuffs.length; i++) {
+    if (activeBuffs[i].kind === 'ticket_cash') m *= activeBuffs[i].magnitude;
+  }
+  return m;
+};
 
 const UPGRADE_BY_ID = new Map(UPGRADE_DEFINITIONS.map((d) => [d.id, d]));
 
 let nextRideInstanceId = 1;
+// State variables remain local for ID generation
 let nextVisitorId = 1;
 let nextNotificationId = 1;
 let nextBuffId = 1;
@@ -56,14 +64,6 @@ const getVisitorSpawnBuffMultiplier = (activeBuffs: ActiveBuff[]): number => {
   return m;
 };
 
-const getTicketCashBuffMultiplier = (activeBuffs: ActiveBuff[]): number => {
-  let m = 1;
-  for (let i = 0; i < activeBuffs.length; i++) {
-    if (activeBuffs[i].kind === 'ticket_cash') m *= activeBuffs[i].magnitude;
-  }
-  return m;
-};
-
 const scheduleGoldenSpawn = (fromTick: number): number =>
   fromTick + randomInt(BALANCE.goldenSpawnMinTicks, BALANCE.goldenSpawnMaxTicks);
 
@@ -82,6 +82,8 @@ const saveAudioSettings = (settings: AudioSettings): void => {
     /* ignore */
   }
 };
+
+// No changes to this function logic as it relies on the BALANCE constants imported above.
 
 const initialGoldenTicket = (): GoldenTicketState => ({
   visible: false,

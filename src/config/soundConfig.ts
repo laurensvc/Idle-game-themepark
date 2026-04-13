@@ -1,3 +1,4 @@
+// Sound configuration constants extracted for modularity
 export type SoundId =
   | 'ui_click'
   | 'ui_toggle'
@@ -9,14 +10,14 @@ export type SoundId =
   | 'golden_ticket';
 
 export const SOUND_FILE_PATHS: Record<SoundId, string> = {
-  ui_click: '/audio/sfx/ui-click.wav',
-  ui_toggle: '/audio/sfx/ui-toggle.wav',
-  cash_collect: '/audio/sfx/cash-collect.ogg',
-  purchase: '/audio/sfx/purchase-confirm.wav',
-  upgrade: '/audio/sfx/upgrade-unlock.wav',
-  warning: '/audio/sfx/warning-soft.wav',
-  crit_hit: '/audio/sfx/purchase-confirm.wav',
-  golden_ticket: '/audio/sfx/upgrade-unlock.wav',
+  ui_click: 'sfx/ui-click.wav',
+  ui_toggle: 'sfx/ui-toggle.wav',
+  cash_collect: 'sfx/cash-collect.ogg',
+  purchase: 'sfx/purchase-confirm.wav',
+  upgrade: 'sfx/upgrade-unlock.wav',
+  warning: 'sfx/warning-soft.wav',
+  crit_hit: 'sfx/purchase-confirm.wav',
+  golden_ticket: 'sfx/upgrade-unlock.wav',
 };
 
 export const SOUND_BASE_VOLUME: Record<SoundId, number> = {
@@ -30,8 +31,8 @@ export const SOUND_BASE_VOLUME: Record<SoundId, number> = {
   golden_ticket: 0.8,
 };
 
-/** Looping background theme: path under `public/audio/`. */
-export const THEME_MUSIC_PATH = '/audio/music/theme-music.ogg';
+/** Looping background theme (from `public/audio/music/`). */
+export const THEME_MUSIC_PATH = 'audio/music/theme-music.ogg';
 
 /**
  * Intrinsic gain for theme music (before master × music sliders).

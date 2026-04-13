@@ -1,46 +1,11 @@
-import type { RidePathEffect, RidePathUpgradeDefinition } from '@/types/game';
-import { RIDE_DEFINITIONS } from './rides';
+import { TRACKS, TIERS, TIER_NAMES } from '@/config/ridePathConfig';
+import type { RidePathUpgradeDefinition } from '@/types/game';
+import { RIDE_DEFINITIONS } from '@/config/rideDataConfig';
 
-const TIER_NAMES = [' I', ' II', ' III'] as const;
-
-const TRACKS: Array<{
-  suffix: string;
-  nameBase: string;
-  desc: string;
-  icon: string;
-  makeEffect: (tier: 0 | 1 | 2) => RidePathEffect;
-}> = [
-  {
-    suffix: 'dispatch',
-    nameBase: 'Faster dispatch',
-    desc: 'Shorter cycles — more throughput per second',
-    icon: '⚡',
-    makeEffect: (tier) => ({ type: 'throughput_pct', value: 0.07 + tier * 0.045 }),
-  },
-  {
-    suffix: 'seating',
-    nameBase: 'Bigger vehicles',
-    desc: 'More guests per load',
-    icon: '💺',
-    makeEffect: (tier) => ({ type: 'capacity_pct', value: 0.1 + tier * 0.06 }),
-  },
-  {
-    suffix: 'pricing',
-    nameBase: 'Premium pricing',
-    desc: 'Earn more per guest',
-    icon: '💎',
-    makeEffect: (tier) => ({ type: 'income_pct', value: 0.08 + tier * 0.05 }),
-  },
-  {
-    suffix: 'merch',
-    nameBase: 'Gift shops',
-    desc: 'Snacks & souvenirs — extra per-guest spend',
-    icon: '🎁',
-    makeEffect: (tier) => ({ type: 'income_pct', value: 0.06 + tier * 0.04 }),
-  },
-];
-
-const TIERS = 3 as const;
+/**
+ * Each track suffix has three tiered levels with increasing bonuses.
+ * Capacity gains are capped at 350% of base. Income/throughput can grow indefinitely.
+ */
 
 function buildPathDefinitions(): RidePathUpgradeDefinition[] {
   const out: RidePathUpgradeDefinition[] = [];

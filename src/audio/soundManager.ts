@@ -4,7 +4,7 @@ import {
   THEME_MUSIC_BASE_VOLUME,
   THEME_MUSIC_PATH,
   type SoundId,
-} from './soundConfig';
+} from '@/config/soundConfig';
 
 interface AudioRuntimeSettings {
   isMuted: boolean;
