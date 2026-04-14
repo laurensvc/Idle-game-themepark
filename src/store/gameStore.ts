@@ -5,6 +5,7 @@ import { getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
 import { RIDE_DEFINITIONS, getRideDefinition } from '@/config/rideDataConfig';
 import { UPGRADE_DEFINITIONS } from '@/config/upgradesConfig';
 import { AUDIO_STORAGE_KEY, loadPersistedAudioSettings } from '@/lib/audioStorage';
+import { loadGameFromLocalStorage } from '@/lib/gameSave';
 import { clamp, randomInt } from '@/lib/utils';
 import type {
   ActiveBuff,
@@ -38,6 +39,30 @@ let nextRideInstanceId = 1;
 let nextVisitorId = 1;
 let nextNotificationId = 1;
 let nextBuffId = 1;
+
+const maxIdSuffix = (ids: readonly string[], prefix: string): number => {
+  let max = 0;
+  const pl = prefix.length;
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    if (!id.startsWith(prefix)) continue;
+    const n = Number(id.slice(pl));
+    if (Number.isFinite(n)) max = Math.max(max, n);
+  }
+  return max;
+};
+
+/** After hydrating from JSON, bump module counters so new entities never reuse saved IDs. */
+export const syncIdCountersFromState = (state: GameState): void => {
+  const rideIds = state.rides.map((r) => r.id);
+  const visitorIds = state.visitors.map((v) => v.id);
+  const notifIds = state.notifications.map((n) => n.id);
+  const buffIds = state.activeBuffs.map((b) => b.id);
+  nextRideInstanceId = maxIdSuffix(rideIds, 'ride_') + 1;
+  nextVisitorId = maxIdSuffix(visitorIds, 'v_') + 1;
+  nextNotificationId = maxIdSuffix(notifIds, 'notif_') + 1;
+  nextBuffId = maxIdSuffix(buffIds, 'buff_') + 1;
+};
 
 const getUpgradeIncomeMultiplier = (upgrades: PurchasedUpgrade[]): number => {
   let incomeMult = 1;
@@ -117,27 +142,38 @@ const initialGoldenTicket = (): GoldenTicketState => ({
   variant: 0,
 });
 
-const starterRide = createRideInstance('ferris_wheel');
-
-const initialState: GameState = {
-  money: BALANCE.startingMoney,
-  rides: [starterRide],
-  happiness: BALANCE.startingHappiness,
-  visitors: [],
-  upgrades: [],
-  notifications: [],
-  tickCount: 0,
-  totalMoneyEarned: 0,
-  totalVisitorsServed: 0,
-  audioSettings: loadPersistedAudioSettings(),
-  selectedRideId: starterRide.id,
-  activeBuffs: [],
-  goldenTicket: initialGoldenTicket(),
-  ticketComboCount: 0,
-  lastTicketClickMs: 0,
-  ticketStock: 0,
-  bankedTicketCash: 0,
+const createDefaultGameState = (): GameState => {
+  const starterRide = createRideInstance('ferris_wheel');
+  return {
+    money: BALANCE.startingMoney,
+    rides: [starterRide],
+    happiness: BALANCE.startingHappiness,
+    visitors: [],
+    upgrades: [],
+    notifications: [],
+    tickCount: 0,
+    totalMoneyEarned: 0,
+    totalVisitorsServed: 0,
+    audioSettings: loadPersistedAudioSettings(),
+    selectedRideId: starterRide.id,
+    activeBuffs: [],
+    goldenTicket: initialGoldenTicket(),
+    ticketComboCount: 0,
+    lastTicketClickMs: 0,
+    ticketStock: 0,
+    bankedTicketCash: 0,
+  };
 };
+
+const loadedGame = loadGameFromLocalStorage();
+const initialState: GameState = (() => {
+  if (loadedGame) {
+    syncIdCountersFromState(loadedGame);
+    saveAudioSettings(loadedGame.audioSettings);
+    return loadedGame;
+  }
+  return createDefaultGameState();
+})();
 
 export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,

@@ -1,11 +1,11 @@
 import { configureSoundSettings, preloadGameSounds } from '@/audio/soundManager';
-import { loadPersistedAudioSettings } from '@/lib/audioStorage';
+import { getBootAudioSettings } from '@/lib/gameSave';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-configureSoundSettings(loadPersistedAudioSettings());
+configureSoundSettings(getBootAudioSettings());
 preloadGameSounds();
 
 const rootEl = document.getElementById('root');

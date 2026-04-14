@@ -11,7 +11,7 @@ const DEFAULT_AUDIO: AudioSettings = {
 
 const clamp01 = (n: number): number => (Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0);
 
-const parseAudioSettings = (value: unknown): AudioSettings | null => {
+export const parseAudioSettings = (value: unknown): AudioSettings | null => {
   if (!value || typeof value !== 'object') return null;
   const o = value as Record<string, unknown>;
   const isMuted = typeof o.isMuted === 'boolean' ? o.isMuted : DEFAULT_AUDIO.isMuted;

@@ -7,6 +7,7 @@ import RideInspector from '@/components/RideInspector';
 import ShopPanel from '@/components/ShopPanel';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/sonner';
+import { saveGameToLocalStorage } from '@/lib/gameSave';
 import { startNotificationSync } from '@/lib/syncNotificationsToSonner';
 import { useGameStore } from '@/store/gameStore';
 import { BarChart3, Users } from 'lucide-react';
@@ -75,6 +76,13 @@ const App: React.FC = () => {
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [tick]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      saveGameToLocalStorage(useGameStore.getState);
+    }, 10_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     configureSoundSettings(audioSettings);
