@@ -15,6 +15,16 @@ export const BALANCE = {
   critChance: 0.04,
   critIncomeMultiplier: 8,
 
+  /** Booth stock bar: taps add stock until full; full tap or Cash in pays banked total. */
+  ticketStockMax: 20,
+  /** Stock units added per non-crit fill tap. */
+  ticketStockGainPerTap: 1,
+  /** Extra stock units on crit (total gain = ticketStockGainPerTap + this). */
+  ticketStockCritExtra: 2,
+
+  /** Show a Sonner celebration when cashing in at least this much (0 to disable). */
+  cashInToastMinBanked: 500,
+
   // --- Golden ticket ---
   goldenSpawnMinTicks: 45,
   goldenSpawnMaxTicks: 120,

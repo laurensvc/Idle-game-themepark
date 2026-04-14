@@ -72,13 +72,11 @@ const HUD: React.FC = memo(() => {
 
       <BuffBar />
 
-      {/* Typical ticket payout from park + upgrades (avg roll, no combo/crit). */}
+      {/* Average $ banked per fill tap (avg dice × park; combo/crit vary). */}
       {avgTicketCash > 0 && (
         <div className="text-park-green flex items-center justify-center gap-1.5 text-xs">
           <Sparkles className="h-3 w-3" />
-          <span className="font-display font-medium tabular-nums">
-            ~{formatMoney(avgTicketCash)} / tap
-          </span>
+          <span className="font-display font-medium tabular-nums">~{formatMoney(avgTicketCash)} banked / fill tap</span>
         </div>
       )}
     </header>

@@ -212,6 +212,28 @@
   }
 }
 
+@keyframes ticket-booth-ready-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.82 0.16 90 / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 8px oklch(0.82 0.16 90 / 0);
+  }
+}
+
+@keyframes arena-cash-in-flash {
+  0% {
+    filter: brightness(1);
+  }
+  40% {
+    filter: brightness(1.25);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
 @keyframes golden-shimmer {
   0%,
   100% {
@@ -259,6 +281,14 @@
 
   .arena-crit-pulse {
     animation: arena-crit-pulse 0.42s ease-out;
+  }
+
+  .ticket-booth-ready-pulse {
+    animation: ticket-booth-ready-pulse 1.6s ease-in-out infinite;
+  }
+
+  .arena-cash-in-flash {
+    animation: arena-cash-in-flash 0.38s ease-out;
   }
 
   .golden-ticket-btn {

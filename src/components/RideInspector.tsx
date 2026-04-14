@@ -90,7 +90,7 @@ const RideInspector: React.FC = memo(() => {
                 <div
                   key={p.suffix}
                   className={cn(
-                    'border-border/60 flex items-start gap-3 rounded-lg border bg-card px-3 py-3',
+                    'border-border/60 bg-card flex items-start gap-3 rounded-lg border px-3 py-3',
                     level > 0 && 'bg-park-green/5',
                     atCap && 'opacity-80'
                   )}

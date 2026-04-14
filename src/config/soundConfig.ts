@@ -3,6 +3,7 @@ export type SoundId =
   | 'ui_click'
   | 'ui_toggle'
   | 'cash_collect'
+  | 'cash_in'
   | 'purchase'
   | 'upgrade'
   | 'warning'
@@ -13,6 +14,7 @@ export const SOUND_FILE_PATHS: Record<SoundId, string> = {
   ui_click: 'sfx/ui-click.wav',
   ui_toggle: 'sfx/ui-toggle.wav',
   cash_collect: 'sfx/cash-collect.ogg',
+  cash_in: 'sfx/purchase-confirm.wav',
   purchase: 'sfx/purchase-confirm.wav',
   upgrade: 'sfx/upgrade-unlock.wav',
   warning: 'sfx/warning-soft.wav',
@@ -24,6 +26,7 @@ export const SOUND_BASE_VOLUME: Record<SoundId, number> = {
   ui_click: 0.05,
   ui_toggle: 0.5,
   cash_collect: 0.7,
+  cash_in: 0.9,
   purchase: 0.65,
   upgrade: 0.75,
   warning: 0.55,

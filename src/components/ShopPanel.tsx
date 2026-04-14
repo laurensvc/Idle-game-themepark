@@ -3,9 +3,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { RIDE_DEFINITIONS } from '@/config/rideDataConfig';
 import { UPGRADE_DEFINITIONS } from '@/config/upgradesConfig';
+import { getRideShopDiscovery, prerequisiteRideName } from '@/lib/rideDiscovery';
 import { cn, formatMoney } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
-import { Lock, ShoppingCart } from 'lucide-react';
+import { HelpCircle, Lock, ShoppingCart } from 'lucide-react';
 import { memo } from 'react';
 
 const ShopPanel: React.FC = memo(() => {
@@ -18,6 +19,8 @@ const ShopPanel: React.FC = memo(() => {
   const ownedRideTypes = new Set(rides.map((r) => r.definitionId));
   const ownedUpgradeIds = new Set(purchasedUpgrades.map((u) => u.upgradeId));
 
+  let firstUndiscoveredShown = false;
+
   return (
     <ScrollArea className="min-h-0 flex-1">
       <div className="space-y-4 px-3 pb-3">
@@ -28,23 +31,49 @@ const ShopPanel: React.FC = memo(() => {
           </h2>
           <div className="grid gap-2">
             {RIDE_DEFINITIONS.map((def) => {
-              const owned = ownedRideTypes.has(def.id);
+              const discovery = getRideShopDiscovery(def, ownedRideTypes);
+              const owned = discovery === 'owned';
+              const undiscovered = discovery === 'undiscovered';
               const canAfford = money >= def.baseCost;
-              const canBuy = !owned && canAfford;
+              const canBuy = discovery === 'discovered' && canAfford;
+              const prevName = prerequisiteRideName(def.id);
+              const showNextLabel = undiscovered && !firstUndiscoveredShown;
+              if (undiscovered) firstUndiscoveredShown = true;
+
               return (
                 <div
                   key={def.id}
                   className={cn(
-                    'border-border/60 flex items-center gap-3 rounded-lg border bg-card px-3 py-3',
+                    'border-border/60 bg-card flex items-center gap-3 rounded-lg border px-3 py-3',
                     owned && 'bg-park-green/5 opacity-70',
-                    !owned && !canAfford && 'opacity-60'
+                    undiscovered && 'opacity-55',
+                    !owned && !undiscovered && !canAfford && 'opacity-60'
                   )}
                 >
-                  <span className="shrink-0 text-2xl">{def.emoji}</span>
+                  <span className="text-muted-foreground shrink-0 text-2xl" aria-hidden>
+                    {undiscovered ? '❔' : def.emoji}
+                  </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold">{def.name}</div>
-                    <div className="text-muted-foreground text-xs">
-                      +{def.baseIncome} tap value · {def.baseCapacity} cap · one per park
+                    {showNextLabel && (
+                      <p className="text-park-orange mb-0.5 text-[10px] font-bold tracking-wide uppercase">
+                        Next attraction
+                      </p>
+                    )}
+                    <div className="flex items-center gap-1 text-sm font-semibold">
+                      {undiscovered ? <span className="text-muted-foreground">???</span> : <span>{def.name}</span>}
+                      {undiscovered && <Lock className="text-muted-foreground h-3 w-3 shrink-0" />}
+                    </div>
+                    <div className="text-muted-foreground flex items-start gap-1 text-xs">
+                      {undiscovered ? (
+                        <>
+                          <HelpCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                          <span>Build {prevName ?? 'the previous ride'} to reveal this blueprint.</span>
+                        </>
+                      ) : (
+                        <span>
+                          +{def.baseIncome} tap value · {def.baseCapacity} cap · one per park
+                        </span>
+                      )}
                     </div>
                   </div>
                   {owned ? (
@@ -57,7 +86,7 @@ const ShopPanel: React.FC = memo(() => {
                       onClick={() => buyRide(def.id)}
                       className="shrink-0"
                     >
-                      {formatMoney(def.baseCost)}
+                      {undiscovered ? '—' : formatMoney(def.baseCost)}
                     </Button>
                   )}
                 </div>
@@ -84,7 +113,7 @@ const ShopPanel: React.FC = memo(() => {
                 <div
                   key={def.id}
                   className={cn(
-                    'border-border/60 flex items-center gap-3 rounded-lg border bg-card px-3 py-3',
+                    'border-border/60 bg-card flex items-center gap-3 rounded-lg border px-3 py-3',
                     owned && 'bg-park-green/5 opacity-50',
                     !prereqMet && 'opacity-40'
                   )}

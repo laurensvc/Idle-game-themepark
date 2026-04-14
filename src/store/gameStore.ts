@@ -21,6 +21,7 @@ import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
 import { VISITOR_TYPES } from '@/config/gameConstants';
+import { rideDefinitionOrderIndex } from '@/lib/rideDiscovery';
 
 const getTicketCashBuffMultiplier = (activeBuffs: ActiveBuff[]): number => {
   let m = 1;
@@ -134,6 +135,8 @@ const initialState: GameState = {
   goldenTicket: initialGoldenTicket(),
   ticketComboCount: 0,
   lastTicketClickMs: 0,
+  ticketStock: 0,
+  bankedTicketCash: 0,
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -280,19 +283,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!def || state.money < def.baseCost) return;
     if (state.rides.some((r) => r.definitionId === definitionId)) return;
 
+    const orderIdx = rideDefinitionOrderIndex(definitionId);
+    if (orderIdx < 0) return;
+    if (orderIdx > 0) {
+      const prevId = RIDE_DEFINITIONS[orderIdx - 1]?.id;
+      if (!prevId || !state.rides.some((r) => r.definitionId === prevId)) return;
+    }
+
     playGameSfx('purchase');
+    const nextDef = RIDE_DEFINITIONS[orderIdx + 1];
+    const notifs = [
+      ...state.notifications,
+      {
+        id: `notif_${nextNotificationId++}`,
+        message: `${def.emoji} Built ${def.name}!`,
+        type: 'success' as const,
+        tick: state.tickCount,
+      },
+    ];
+    if (nextDef && !state.rides.some((r) => r.definitionId === nextDef.id)) {
+      notifs.push({
+        id: `notif_${nextNotificationId++}`,
+        message: `Blueprint unlocked: ${nextDef.emoji} ${nextDef.name}`,
+        type: 'success',
+        tick: state.tickCount,
+      });
+    }
+    while (notifs.length > BALANCE.maxNotifications) {
+      notifs.shift();
+    }
+
     set({
       money: state.money - def.baseCost,
       rides: [...state.rides, createRideInstance(definitionId)],
-      notifications: [
-        ...state.notifications,
-        {
-          id: `notif_${nextNotificationId++}`,
-          message: `${def.emoji} Built ${def.name}!`,
-          type: 'success',
-          tick: state.tickCount,
-        },
-      ],
+      notifications: notifs,
     });
   },
 
@@ -371,19 +395,99 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const comboMult = 1 + (combo - 1) * BALANCE.comboBonusPerStack;
     const isCrit = Math.random() < BALANCE.critChance;
     const critMult = isCrit ? BALANCE.critIncomeMultiplier : 1;
-    const amount = Math.max(1, Math.round(base * comboMult * critMult * ticketBuffMult * parkTicketMult));
+    const rollAmount = Math.max(1, Math.round(base * comboMult * critMult * ticketBuffMult * parkTicketMult));
+
+    const maxStock = BALANCE.ticketStockMax;
+    const atCap = state.ticketStock >= maxStock;
+
+    // Bar full: tap pays out (combo timing still updates on this tap).
+    if (atCap) {
+      const total = state.bankedTicketCash;
+      if (total > 0) {
+        playGameSfx('cash_in');
+        set({
+          money: state.money + total,
+          totalMoneyEarned: state.totalMoneyEarned + total,
+          ticketStock: 0,
+          bankedTicketCash: 0,
+          ticketComboCount: combo,
+          lastTicketClickMs: clickMs,
+          activeBuffs,
+        });
+        return {
+          amount: total,
+          isCrit: false,
+          comboLevel: combo,
+          mode: 'cash_in',
+          stockAfter: 0,
+          bankedAfter: 0,
+        };
+      }
+      set({ ticketStock: 0, ticketComboCount: combo, lastTicketClickMs: clickMs, activeBuffs });
+      return {
+        amount: 0,
+        isCrit: false,
+        comboLevel: combo,
+        mode: 'cash_in',
+        stockAfter: 0,
+        bankedAfter: 0,
+      };
+    }
+
+    const stockGain = isCrit
+      ? BALANCE.ticketStockGainPerTap + BALANCE.ticketStockCritExtra
+      : BALANCE.ticketStockGainPerTap;
+    const newStock = Math.min(maxStock, state.ticketStock + stockGain);
+    const newBanked = state.bankedTicketCash + rollAmount;
 
     if (isCrit) playGameSfx('crit_hit');
-    else playGameSfx('cash_collect');
+    else playGameSfx('ui_click');
 
     set({
-      money: state.money + amount,
-      totalMoneyEarned: state.totalMoneyEarned + amount,
+      bankedTicketCash: newBanked,
+      ticketStock: newStock,
       ticketComboCount: combo,
       lastTicketClickMs: clickMs,
       activeBuffs,
     });
-    return { amount, isCrit, comboLevel: combo };
+
+    return {
+      amount: rollAmount,
+      isCrit,
+      comboLevel: combo,
+      mode: 'fill',
+      stockAfter: newStock,
+      bankedAfter: newBanked,
+    };
+  },
+
+  cashInTicketBooth: (): TicketBoothResult | null => {
+    const state = get();
+    const activeBuffs = state.activeBuffs.filter((b) => b.expiresAtTick > state.tickCount);
+    const total = state.bankedTicketCash;
+    if (total <= 0) {
+      if (state.ticketStock > 0) {
+        set({ ticketStock: 0, activeBuffs });
+      }
+      return null;
+    }
+
+    playGameSfx('cash_in');
+    set({
+      money: state.money + total,
+      totalMoneyEarned: state.totalMoneyEarned + total,
+      ticketStock: 0,
+      bankedTicketCash: 0,
+      activeBuffs,
+    });
+    return {
+      amount: total,
+      isCrit: false,
+      comboLevel: state.ticketComboCount,
+      mode: 'cash_in',
+      stockAfter: 0,
+      bankedAfter: 0,
+    };
   },
 
   collectGoldenTicket: () => {
@@ -503,11 +607,7 @@ export const selectTickCount = (s: GameStore): number => s.tickCount;
 export const selectEstimatedAvgTicketCash = (s: GameStore): number => {
   const activeBuffs = s.activeBuffs.filter((b) => b.expiresAtTick > s.tickCount);
   const avgBase = (BALANCE.ticketBoothMin + BALANCE.ticketBoothMax) / 2;
-  const parkMult = getParkTicketValueMultiplier(
-    s.rides,
-    s.upgrades,
-    getRideIncomeBuffMultiplier(activeBuffs)
-  );
+  const parkMult = getParkTicketValueMultiplier(s.rides, s.upgrades, getRideIncomeBuffMultiplier(activeBuffs));
   const ticketBuff = getTicketCashBuffMultiplier(activeBuffs);
   return Math.max(1, Math.round(avgBase * parkMult * ticketBuff));
 };

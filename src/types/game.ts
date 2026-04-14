@@ -96,10 +96,17 @@ export interface GoldenTicketState {
   variant: number;
 }
 
+export type TicketBoothMode = 'fill' | 'cash_in';
+
 export interface TicketBoothResult {
+  /** On fill: value banked this tap. On cash_in: total paid out. */
   amount: number;
   isCrit: boolean;
   comboLevel: number;
+  mode: TicketBoothMode;
+  stockAfter: number;
+  /** Running banked total after a fill tap; 0 after cash_in. */
+  bankedAfter: number;
 }
 
 export interface GameState {
@@ -118,6 +125,9 @@ export interface GameState {
   goldenTicket: GoldenTicketState;
   ticketComboCount: number;
   lastTicketClickMs: number;
+  /** Unsold booth taps toward `BALANCE.ticketStockMax`; cash-in pays `bankedTicketCash`. */
+  ticketStock: number;
+  bankedTicketCash: number;
 }
 
 export interface GameActions {
@@ -128,6 +138,8 @@ export interface GameActions {
   buyUpgrade: (upgradeId: string) => void;
   /** `clickMs` should be `performance.now()` from the click handler for combo timing. */
   ticketBooth: (clickMs: number) => TicketBoothResult;
+  /** Pay out banked booth total early (or when bar not full). No-op if nothing banked. */
+  cashInTicketBooth: () => TicketBoothResult | null;
   collectGoldenTicket: () => void;
   selectRide: (rideId: string | null) => void;
   setAudioSettings: (settings: Partial<AudioSettings>) => void;

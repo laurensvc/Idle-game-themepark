@@ -1,6 +1,11 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatMoney, formatNumber } from '@/lib/utils';
-import { selectEstimatedAvgTicketCash, selectOperatingCount, selectTotalVisitors, useGameStore } from '@/store/gameStore';
+import {
+  selectEstimatedAvgTicketCash,
+  selectOperatingCount,
+  selectTotalVisitors,
+  useGameStore,
+} from '@/store/gameStore';
 import { Clock, DollarSign, ShoppingBag, Star, Ticket, TrendingUp, Users } from 'lucide-react';
 import { memo } from 'react';
 

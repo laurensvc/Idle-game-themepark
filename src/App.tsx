@@ -33,34 +33,39 @@ const App: React.FC = () => {
   const nextCoinFlyId = useRef(0);
   const coinFlyTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const handleTicketCashFly = useCallback((ticketButton: HTMLElement, opts: { isCrit: boolean }) => {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return;
-    }
-    const count = opts.isCrit ? 3 : 1;
-    for (let i = 0; i < count; i++) {
-      const jitterX = (i - (count - 1) / 2) * 16;
-      const jitterY = i * 5;
-      const tid = window.setTimeout(() => {
-        const target = document.getElementById('money-fly-target');
-        if (!target) return;
-        const fr = ticketButton.getBoundingClientRect();
-        const tr = target.getBoundingClientRect();
-        const id = nextCoinFlyId.current++;
-        setCoinFlies((prev) => [
-          ...prev,
-          {
-            id,
-            sx: fr.left + fr.width / 2 + jitterX,
-            sy: fr.top + fr.height / 2 + jitterY,
-            ex: tr.left + tr.width / 2,
-            ey: tr.top + tr.height / 2,
-          },
-        ]);
-      }, i * 55);
-      coinFlyTimeoutsRef.current.push(tid);
-    }
-  }, []);
+  const handleTicketCashFly = useCallback(
+    (ticketButton: HTMLElement, opts: { isCrit: boolean; isCashIn: true; cashInAmount: number }) => {
+      if (!opts.isCashIn) return;
+      if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+      }
+      const amt = opts.cashInAmount;
+      const count = Math.max(2, Math.min(8, 2 + Math.floor(amt / 350)));
+      for (let i = 0; i < count; i++) {
+        const jitterX = (i - (count - 1) / 2) * 16;
+        const jitterY = i * 5;
+        const tid = window.setTimeout(() => {
+          const target = document.getElementById('money-fly-target');
+          if (!target) return;
+          const fr = ticketButton.getBoundingClientRect();
+          const tr = target.getBoundingClientRect();
+          const id = nextCoinFlyId.current++;
+          setCoinFlies((prev) => [
+            ...prev,
+            {
+              id,
+              sx: fr.left + fr.width / 2 + jitterX,
+              sy: fr.top + fr.height / 2 + jitterY,
+              ex: tr.left + tr.width / 2,
+              ey: tr.top + tr.height / 2,
+            },
+          ]);
+        }, i * 55);
+        coinFlyTimeoutsRef.current.push(tid);
+      }
+    },
+    []
+  );
 
   const handleCoinFlyDone = useCallback((id: number) => {
     setCoinFlies((prev) => prev.filter((f) => f.id !== id));
