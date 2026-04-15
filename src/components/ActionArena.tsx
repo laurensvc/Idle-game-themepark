@@ -1,5 +1,5 @@
-import { BALANCE } from '@/config/balanceConfig';
 import { Button } from '@/components/ui/button';
+import { BALANCE } from '@/config/balanceConfig';
 import { cn, formatMoney } from '@/lib/utils';
 import { selectGoldenTicket, selectTickCount, useGameStore } from '@/store/gameStore';
 import { DollarSign, Sparkles } from 'lucide-react';
@@ -35,9 +35,12 @@ const applyCashInFeedback = (
     spawnFloat: (text: string, el: HTMLElement, v: FloatVariant) => void;
     onTicketCashFly?: ActionArenaProps['onTicketCashFly'];
     setCashInFlash: (v: boolean) => void;
+    onFirstCashIn?: () => void;
   }
 ): void => {
   if (result.amount <= 0) return;
+
+  opts.onFirstCashIn?.();
 
   const label = `Cashed! ${formatMoney(result.amount)}`;
   opts.spawnFloat(label, boothEl, 'cashin');
@@ -70,6 +73,13 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
   const arenaRef = useRef<HTMLDivElement>(null);
   const boothBtnRef = useRef<HTMLButtonElement>(null);
   const mountedRef = useRef(true);
+  const hasCashedInRef = useRef(false);
+
+  const nudgeFirstCashIn = useCallback(() => {
+    if (hasCashedInRef.current) return;
+    hasCashedInRef.current = true;
+    toast.info('Cash-ins fuel the park — check the Shop for rides and upgrades.', { duration: 3200 });
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -108,6 +118,7 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
           spawnFloat,
           onTicketCashFly,
           setCashInFlash,
+          onFirstCashIn: nudgeFirstCashIn,
         });
         return;
       }
@@ -127,7 +138,7 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
         }, 420);
       }
     },
-    [ticketBooth, spawnFloat, onTicketCashFly]
+    [ticketBooth, spawnFloat, onTicketCashFly, nudgeFirstCashIn]
   );
 
   const handleCashIn = useCallback(() => {
@@ -135,8 +146,13 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
     if (!boothEl) return;
     const result = cashInTicketBooth();
     if (!result) return;
-    applyCashInFeedback(result, boothEl, { spawnFloat, onTicketCashFly, setCashInFlash });
-  }, [cashInTicketBooth, spawnFloat, onTicketCashFly]);
+    applyCashInFeedback(result, boothEl, {
+      spawnFloat,
+      onTicketCashFly,
+      setCashInFlash,
+      onFirstCashIn: nudgeFirstCashIn,
+    });
+  }, [cashInTicketBooth, spawnFloat, onTicketCashFly, nudgeFirstCashIn]);
 
   const goldenTicksLeft = golden.visible ? Math.max(0, golden.expiresAtTick - tickCount) : 0;
   const goldenProgress =

@@ -1,9 +1,9 @@
 import { playGameSfx } from '@/audio/soundManager';
 import { BALANCE } from '@/config/balanceConfig';
-import { PATH_MAX_LEVEL, PATH_TRACK_BY_SUFFIX, getNextPathUpgradeCost } from '@/config/ridePathConfig';
-import { getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
 import { RIDE_DEFINITIONS, getRideDefinition } from '@/config/rideDataConfig';
+import { PATH_MAX_LEVEL, PATH_TRACK_BY_SUFFIX, getNextPathUpgradeCost } from '@/config/ridePathConfig';
 import { UPGRADE_DEFINITIONS } from '@/config/upgradesConfig';
+import { getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
 import { AUDIO_STORAGE_KEY, loadPersistedAudioSettings } from '@/lib/audioStorage';
 import { loadGameFromLocalStorage } from '@/lib/gameSave';
 import { clamp, randomInt } from '@/lib/utils';
@@ -150,7 +150,15 @@ const createDefaultGameState = (): GameState => {
     happiness: BALANCE.startingHappiness,
     visitors: [],
     upgrades: [],
-    notifications: [],
+    notifications: [
+      {
+        id: `notif_${nextNotificationId++}`,
+        message:
+          'Welcome! Tap Tickets to bank cash — the bar below shows your next cheapest upgrade, ride, or park perk.',
+        type: 'info',
+        tick: 0,
+      },
+    ],
     tickCount: 0,
     totalMoneyEarned: 0,
     totalVisitorsServed: 0,
@@ -204,7 +212,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         playGameSfx('warning');
         notifications.push({
           id: `notif_${nextNotificationId++}`,
-          message: 'Golden ticket expired!',
+          message: 'Golden ticket vanished — another will pop up soon!',
           type: 'warning',
           tick: newTickCount,
         });

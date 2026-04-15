@@ -1,6 +1,7 @@
 export const BALANCE = {
   // --- Starting state ---
-  startingMoney: 0,
+  /** Small float so new parks can grab a cheap path upgrade or see faster shop progress (early win). */
+  startingMoney: 28,
   startingHappiness: 80,
 
   // --- Revenue ---

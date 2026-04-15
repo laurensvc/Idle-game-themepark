@@ -29,8 +29,7 @@ const NOTIFICATION_TYPES = new Set<NotificationType>(['info', 'success', 'warnin
 
 const VISITOR_TYPE_SET = new Set<string>(VISITOR_TYPES);
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v);
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 const finiteNum = (v: unknown, fallback: number): number =>
   typeof v === 'number' && Number.isFinite(v) ? v : fallback;
@@ -89,7 +88,10 @@ const parseNotification = (raw: unknown): GameNotification | null => {
   if (!isRecord(raw)) return null;
   const id = typeof raw.id === 'string' && raw.id.length > 0 ? raw.id : null;
   const message = typeof raw.message === 'string' ? raw.message : '';
-  const type = typeof raw.type === 'string' && NOTIFICATION_TYPES.has(raw.type as NotificationType) ? (raw.type as NotificationType) : null;
+  const type =
+    typeof raw.type === 'string' && NOTIFICATION_TYPES.has(raw.type as NotificationType)
+      ? (raw.type as NotificationType)
+      : null;
   if (!id || !type) return null;
   return {
     id,
@@ -102,7 +104,8 @@ const parseNotification = (raw: unknown): GameNotification | null => {
 const parseActiveBuff = (raw: unknown): ActiveBuff | null => {
   if (!isRecord(raw)) return null;
   const id = typeof raw.id === 'string' && raw.id.length > 0 ? raw.id : null;
-  const kind = typeof raw.kind === 'string' && BUFF_KINDS.has(raw.kind as ActiveBuffKind) ? (raw.kind as ActiveBuffKind) : null;
+  const kind =
+    typeof raw.kind === 'string' && BUFF_KINDS.has(raw.kind as ActiveBuffKind) ? (raw.kind as ActiveBuffKind) : null;
   if (!id || !kind) return null;
   const magnitude = finiteNum(raw.magnitude, 1);
   return {

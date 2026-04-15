@@ -2,6 +2,7 @@ import { configureSoundSettings, playGameSfx } from '@/audio/soundManager';
 import ActionArena from '@/components/ActionArena';
 import CoinFlyLayer, { type CoinFlyItem } from '@/components/CoinFlyLayer';
 import HUD from '@/components/HUD';
+import NextGoalHint from '@/components/NextGoalHint';
 import ParkView from '@/components/ParkView';
 import RideInspector from '@/components/RideInspector';
 import ShopPanel from '@/components/ShopPanel';
@@ -127,8 +128,9 @@ const App: React.FC = () => {
   return (
     <div onClick={handleUserGesture}>
       <div className="bg-background text-foreground relative mx-auto flex h-dvh w-full max-w-[1600px] flex-col overflow-hidden">
-        <div className="relative shrink-0 px-3 pt-3 sm:px-4">
+        <div className="relative flex shrink-0 flex-col gap-2 px-3 pt-3 sm:px-4">
           <HUD />
+          <NextGoalHint />
         </div>
         <div className="relative shrink-0 px-3 sm:px-4">
           <ActionArena onTicketCashFly={handleTicketCashFly} />
