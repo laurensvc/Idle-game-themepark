@@ -2,8 +2,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { getNextPathUpgradeCost, PATH_MAX_LEVEL, PATH_TRACKS } from '@/config/ridePathConfig';
 import { getRideDefinition } from '@/config/rideDataConfig';
+import { getNextPathUpgradeCost, PATH_MAX_LEVEL, PATH_TRACKS } from '@/config/ridePathConfig';
 import { getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
 import { cn, formatMoney } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
@@ -21,9 +21,13 @@ const RideInspector: React.FC = memo(() => {
 
   if (!ride || !def) {
     return (
-      <div className="text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-6 py-10 text-center text-sm">
-        <p className="font-medium">No ride selected</p>
-        <p className="text-xs">{rides.length > 0 ? 'Pick a ride from the list.' : 'Buy a ride in the shop column.'}</p>
+      <div className="text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-6 py-10 text-center text-sm">
+        <p className="font-display text-foreground font-semibold tracking-tight">No ride selected</p>
+        <p className="max-w-[28ch] text-xs leading-relaxed">
+          {rides.length > 0
+            ? 'Tap a ride card on the left to see stats and path upgrades here.'
+            : 'Open the Shop and build your first ride to get started.'}
+        </p>
       </div>
     );
   }
@@ -42,9 +46,9 @@ const RideInspector: React.FC = memo(() => {
             {def.emoji}
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg leading-tight font-bold">{def.name}</h2>
-            <p className="text-muted-foreground mt-0.5 text-xs">
-              {def.category.charAt(0).toUpperCase() + def.category.slice(1)} ride · runs automatically · one per park
+            <h3 className="font-display text-lg leading-tight font-bold tracking-tight text-pretty">{def.name}</h3>
+            <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
+              {def.category.charAt(0).toUpperCase() + def.category.slice(1)} ride · runs on its own · one copy per park
             </p>
           </div>
         </div>
@@ -73,10 +77,12 @@ const RideInspector: React.FC = memo(() => {
         <Separator />
 
         <div>
-          <h3 className="text-foreground mb-2 text-sm font-bold">Upgrade paths</h3>
-          <p className="text-muted-foreground mb-3 text-xs">
-            Four tracks — repeat purchases per track. Cost scales exponentially with level; each level adds a growing
-            bonus slice, up to {PATH_MAX_LEVEL} per track.
+          <h4 className="text-foreground font-display mb-2 text-sm font-bold tracking-tight text-pretty">
+            Upgrade paths
+          </h4>
+          <p className="text-muted-foreground mb-3 text-xs leading-relaxed">
+            Four tracks you can level repeatedly. Costs rise each step; bonuses stack up to level {PATH_MAX_LEVEL} per
+            track.
           </p>
           <div className="space-y-2">
             {PATH_TRACKS.map((p) => {

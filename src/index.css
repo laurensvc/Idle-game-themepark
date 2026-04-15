@@ -7,6 +7,8 @@
 
 @theme inline {
   --font-sans: 'Baloo 2', 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  /** Display / headings — same family as sans, explicit token for hierarchy (typeset + normalize). */
+  --font-display: 'Baloo 2', 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
   --font-pixel: 'Press Start 2P', monospace;
   --font-retro: 'VT323', monospace;
@@ -74,6 +76,30 @@
 }
 
 @layer base {
+  .skip-link {
+    @apply bg-primary text-primary-foreground ring-offset-background rounded-md px-4 py-2 text-sm font-semibold shadow-md;
+    position: absolute;
+    left: 0.75rem;
+    top: 0.75rem;
+    z-index: 100;
+    transform: translateY(-150%);
+    transition: transform 0.2s ease-out;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  .skip-link:focus-visible {
+    @apply ring-ring ring-2 ring-offset-2 outline-none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skip-link {
+      transition: none;
+    }
+  }
+
   html {
     font-size: 100%;
   }
@@ -253,7 +279,17 @@
 @layer components {
   .park-card {
     @apply bg-card border-border/60 rounded-xl border shadow-sm;
-    transition: box-shadow 0.2s ease-out;
+    transition:
+      box-shadow 0.2s ease-out,
+      transform 0.15s ease-out;
+  }
+
+  .park-card:hover:not(:disabled) {
+    @apply shadow-md;
+  }
+
+  .park-card:focus-visible {
+    @apply ring-ring ring-2 ring-offset-2 outline-none;
   }
 
   .park-button {

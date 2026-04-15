@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
-import { getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
 import { getRideDefinition } from '@/config/rideDataConfig';
+import { getRidePathStatMultipliers } from '@/data/ridePathUpgrades';
 import { cn, formatMoney } from '@/lib/utils';
 import { useGameStore } from '@/store/gameStore';
 import type { RideInstance } from '@/types/game';
@@ -24,16 +24,15 @@ const RideCard: React.FC<RideCardProps> = memo(({ ride }) => {
   const upgradeCount = Object.values(ride.pathTrackLevels).reduce((a, n) => a + n, 0);
 
   return (
-    <div
+    <button
+      type="button"
       className={cn(
-        'park-card border-l-park-green ring-offset-background cursor-pointer border-l-4 p-3 transition-shadow active:scale-[0.99]',
+        'park-card border-l-park-green ring-offset-background w-full cursor-pointer border-l-4 p-3 text-left active:scale-[0.99]',
         isSelected && 'ring-primary ring-2 ring-offset-2'
       )}
       onClick={() => selectRide(ride.id)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && selectRide(ride.id)}
-      aria-label={`${def.name} - Running`}
+      aria-pressed={isSelected}
+      aria-label={`${def.name}, running. Tap value ${formatMoney(income)} per ticket fill.`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -41,7 +40,7 @@ const RideCard: React.FC<RideCardProps> = memo(({ ride }) => {
             {def.emoji}
           </span>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">{def.name}</div>
+            <div className="font-display truncate text-sm font-semibold tracking-tight">{def.name}</div>
             <div className="mt-0.5 flex items-center gap-1.5">
               <Badge variant="operating" className="px-1.5 py-0 text-[10px]">
                 Running
@@ -60,7 +59,7 @@ const RideCard: React.FC<RideCardProps> = memo(({ ride }) => {
         </span>
         {ride.visitors > 0 && <span>{ride.visitors} visitors</span>}
       </div>
-    </div>
+    </button>
   );
 });
 

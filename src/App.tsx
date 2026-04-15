@@ -127,7 +127,11 @@ const App: React.FC = () => {
 
   return (
     <div onClick={handleUserGesture}>
+      <a href="#main-content" className="skip-link">
+        Skip to park
+      </a>
       <div className="bg-background text-foreground relative mx-auto flex h-dvh w-full max-w-[1600px] flex-col overflow-hidden">
+        <h1 className="sr-only">Idle Theme Park</h1>
         <div className="relative flex shrink-0 flex-col gap-2 px-3 pt-3 sm:px-4">
           <HUD />
           <NextGoalHint />
@@ -137,31 +141,50 @@ const App: React.FC = () => {
         </div>
         <CoinFlyLayer items={coinFlies} onItemDone={handleCoinFlyDone} />
 
-        <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 px-3 pb-2 sm:px-4 lg:grid-cols-3 lg:gap-4">
-          <section className={columnChrome}>
-            <header className="border-border/60 shrink-0 border-b px-3 py-2.5">
-              <h2 className="text-sm font-bold tracking-tight">Your rides</h2>
-              <p className="text-muted-foreground text-xs">Click a ride to see upgrades in the center column.</p>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="grid min-h-0 flex-1 scroll-mt-2 grid-cols-1 gap-3 px-3 pb-2 outline-none sm:px-4 lg:grid-cols-3 lg:gap-4"
+        >
+          <section className={columnChrome} aria-labelledby="section-rides-heading">
+            <header className="border-border/60 shrink-0 border-b px-3 py-3">
+              <h2 id="section-rides-heading" className="font-display text-base font-bold tracking-tight text-pretty">
+                Your rides
+              </h2>
+              <p className="text-muted-foreground mt-1 text-xs leading-snug">
+                Choose a ride to open path upgrades in the middle column.
+              </p>
             </header>
             <div className="flex min-h-0 flex-1 flex-col">
               <ParkView />
             </div>
           </section>
 
-          <section className={columnChrome}>
-            <header className="border-border/60 shrink-0 border-b px-3 py-2.5">
-              <h2 className="text-sm font-bold tracking-tight">Current ride</h2>
-              <p className="text-muted-foreground text-xs">Stats and path upgrades for the selected ride.</p>
+          <section className={columnChrome} aria-labelledby="section-inspector-heading">
+            <header className="border-border/60 shrink-0 border-b px-3 py-3">
+              <h2
+                id="section-inspector-heading"
+                className="font-display text-base font-bold tracking-tight text-pretty"
+              >
+                Ride details
+              </h2>
+              <p className="text-muted-foreground mt-1 text-xs leading-snug">
+                Stats and upgrade paths for the ride you selected.
+              </p>
             </header>
             <div className="flex min-h-0 flex-1 flex-col">
               <RideInspector />
             </div>
           </section>
 
-          <section className={columnChrome}>
-            <header className="border-border/60 shrink-0 border-b px-3 py-2.5">
-              <h2 className="text-sm font-bold tracking-tight">Shop</h2>
-              <p className="text-muted-foreground text-xs">New rides and park-wide upgrades.</p>
+          <section className={columnChrome} aria-labelledby="section-shop-heading">
+            <header className="border-border/60 shrink-0 border-b px-3 py-3">
+              <h2 id="section-shop-heading" className="font-display text-base font-bold tracking-tight text-pretty">
+                Shop
+              </h2>
+              <p className="text-muted-foreground mt-1 text-xs leading-snug">
+                Unlock new attractions and park-wide perks with cash.
+              </p>
             </header>
             <div className="flex min-h-0 flex-1 flex-col">
               <ShopPanel />
@@ -170,11 +193,11 @@ const App: React.FC = () => {
         </main>
 
         {/* Footer */}
-        <footer className="border-border/30 from-park-cream/40 to-park-cream/10 flex shrink-0 items-center justify-center gap-2 border-t-[3px] bg-linear-to-b px-3 py-2">
+        <footer className="border-border/30 from-park-cream/40 to-park-cream/10 flex shrink-0 items-center justify-center gap-2 border-t-[3px] bg-linear-to-b px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={() => openAux('visitors')}
-            className="text-muted-foreground hover:text-foreground hover:bg-muted/80 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:ring-ring flex min-h-11 min-w-11 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-[color,background-color,box-shadow] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <Users className="h-4 w-4" />
             Visitors
@@ -182,7 +205,7 @@ const App: React.FC = () => {
           <button
             type="button"
             onClick={() => openAux('stats')}
-            className="text-muted-foreground hover:text-foreground hover:bg-muted/80 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:ring-ring flex min-h-11 min-w-11 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-[color,background-color,box-shadow] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <BarChart3 className="h-4 w-4" />
             Stats

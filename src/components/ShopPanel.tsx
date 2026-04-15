@@ -24,11 +24,14 @@ const ShopPanel: React.FC = memo(() => {
   return (
     <ScrollArea className="min-h-0 flex-1">
       <div className="space-y-4 px-3 pb-3">
-        <section>
-          <h2 className="text-foreground mb-2 flex items-center gap-1.5 text-sm font-bold">
-            <ShoppingCart className="h-4 w-4" />
+        <section aria-labelledby="shop-rides-heading">
+          <h3
+            id="shop-rides-heading"
+            className="text-foreground font-display mb-2 flex items-center gap-1.5 text-base font-bold tracking-tight text-pretty"
+          >
+            <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden />
             Rides
-          </h2>
+          </h3>
           <div className="grid gap-2">
             {RIDE_DEFINITIONS.map((def) => {
               const discovery = getRideShopDiscovery(def, ownedRideTypes);
@@ -97,11 +100,16 @@ const ShopPanel: React.FC = memo(() => {
 
         <Separator />
 
-        <section>
-          <h2 className="text-foreground mb-2 flex items-center gap-1.5 text-sm font-bold">
-            <span className="text-base">⬆️</span>
+        <section aria-labelledby="shop-upgrades-heading">
+          <h3
+            id="shop-upgrades-heading"
+            className="text-foreground font-display mb-2 flex items-center gap-1.5 text-base font-bold tracking-tight text-pretty"
+          >
+            <span className="text-base" aria-hidden>
+              ⬆️
+            </span>
             Upgrades
-          </h2>
+          </h3>
           <div className="grid gap-2">
             {UPGRADE_DEFINITIONS.map((def) => {
               const owned = ownedUpgradeIds.has(def.id);

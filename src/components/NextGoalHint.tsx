@@ -16,9 +16,14 @@ const NextGoalHint: React.FC = memo(() => {
 
   if (!snapshot) {
     return (
-      <div className="border-border/50 bg-park-green/8 text-park-green flex items-center gap-2 rounded-lg border px-3 py-2 text-xs">
-        <Sparkles className="h-3.5 w-3.5 shrink-0" />
-        <span className="font-medium">You have unlocked every purchase in this build — tune the park for fun.</span>
+      <div
+        role="status"
+        className="border-border/50 bg-park-green/8 text-park-green flex items-center gap-2 rounded-lg border px-3 py-2 text-xs"
+      >
+        <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span className="leading-snug font-medium">
+          You have bought everything in this build. Keep tapping for fun or wait for new content.
+        </span>
       </div>
     );
   }
@@ -40,17 +45,20 @@ const NextGoalHint: React.FC = memo(() => {
       : 'Open the Shop column on the right.';
 
   return (
-    <div className="border-border/60 bg-card/80 text-foreground flex flex-col gap-1.5 rounded-lg border px-3 py-2 shadow-sm">
+    <section
+      className="border-border/60 bg-card/80 text-foreground flex flex-col gap-1.5 rounded-lg border px-3 py-2 shadow-sm"
+      aria-label="Next savings goal"
+    >
       <div className="flex items-center gap-2">
         <Flag className="text-park-orange h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">Next milestone</span>
       </div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="font-display text-sm font-semibold">{title}</span>
+        <span className="font-display text-sm font-semibold tracking-tight text-pretty">{title}</span>
         <span className="text-muted-foreground font-display text-xs tabular-nums">{formatMoney(goal.cost)}</span>
       </div>
       {canAfford ? (
-        <p className="text-park-green text-xs font-medium">{where}</p>
+        <p className="text-park-green text-xs leading-snug font-medium">{where}</p>
       ) : (
         <>
           <div
@@ -66,12 +74,12 @@ const NextGoalHint: React.FC = memo(() => {
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <p className="text-muted-foreground text-xs tabular-nums">
-            {formatMoney(remaining)} to go ({progressPct}%)
+          <p className="text-muted-foreground text-xs leading-snug tabular-nums">
+            {formatMoney(remaining)} left to save ({progressPct}%)
           </p>
         </>
       )}
-    </div>
+    </section>
   );
 });
 

@@ -174,7 +174,8 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
             'ticket-booth-btn group relative flex min-h-17 flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl px-3 py-3',
             'from-park-orange to-park-orange/90 bg-linear-to-b text-white shadow-md select-none',
             'ring-park-orange/25 cursor-pointer transition-[transform,box-shadow] duration-150',
-            'hover:shadow-lg hover:ring-2 active:scale-[0.97]',
+            'focus-visible:ring-park-cream/90 focus-visible:ring-offset-park-orange hover:shadow-lg hover:ring-2 focus-visible:ring-3 focus-visible:ring-offset-2 focus-visible:outline-none',
+            'active:scale-[0.97]',
             critPulse && 'arena-crit-pulse',
             cashInFlash && 'arena-cash-in-flash',
             barFull && 'ticket-booth-ready-pulse'
@@ -192,7 +193,7 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
               <Sparkles className="h-5 w-5 opacity-90 transition-transform duration-300 group-hover:rotate-12" />
             </div>
             <span className="text-park-cream text-[10px] font-medium opacity-90">
-              Fill the bar · bank $ each tap · cash in anytime or tap again when full
+              Fill the bar, bank cash each tap, then cash in anytime—or tap again when the bar is full.
             </span>
             {(ticketStock > 0 || bankedTicketCash > 0) && (
               <span className="text-park-cream/95 font-display text-[11px] font-semibold tabular-nums">
@@ -218,7 +219,7 @@ const ActionArena: React.FC<ActionArenaProps> = memo(({ onTicketCashFly }) => {
         <button
           type="button"
           onClick={() => collectGoldenTicket()}
-          className="golden-ticket-btn border-park-yellow bg-card absolute top-2 right-4 z-10 flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 shadow-lg select-none"
+          className="golden-ticket-btn border-park-yellow bg-card focus-visible:ring-ring absolute top-2 right-4 z-10 flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 shadow-lg select-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           aria-label="Collect golden ticket"
         >
           <span className="text-2xl leading-none" role="img" aria-hidden>
