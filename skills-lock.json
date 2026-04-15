@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "game-design": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "ede7201a25dc279ac97803f9d3403c6e6a6df0f086e4b06ef31d854c5255ae1f"
+    }
+  }
+}
